@@ -17,6 +17,10 @@ const config: Config = {
       }
     },
   },
-  plugins: [nextui({defaultTheme:'dark'})],
+  plugins: [nextui({defaultTheme:'dark',layout:{
+    borderWidth:{
+      medium:"1px"
+    }
+  }})],
 }
 export default config
