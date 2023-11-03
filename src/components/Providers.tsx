@@ -14,7 +14,8 @@ import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo, useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
-import '@solana/wallet-adapter-react-ui/styles.css';
+import "@solana/wallet-adapter-react-ui/styles.css";
+import { ProgramProvider } from "@/contexts/program";
 
 type ProviderProps = {
   children: React.ReactNode;
@@ -68,14 +69,16 @@ const Providers = ({ children }: ProviderProps) => {
   }
   return (
     <SolanaWalletProviders>
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          className:
-            "!border !border-default-300 !bg-default-50 !shadow-xl !text-gray-200",
-        }}
-      />
-      <NextUIProvider>{children}</NextUIProvider>
+      <ProgramProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            className:
+              "!border !border-default-300 !bg-default-50 !shadow-xl !text-gray-200",
+          }}
+        />
+        <NextUIProvider>{children}</NextUIProvider>
+      </ProgramProvider>
     </SolanaWalletProviders>
   );
 };

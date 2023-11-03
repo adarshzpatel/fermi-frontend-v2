@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as anchor from "@project-serum/anchor";
+import useProgram from "@/hooks/useProgram";
 
 // ORDERBOOK
 type OrderRowProps = {
@@ -32,27 +33,27 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const Orderbook = () => {
-  const program = "";
   const bidsPda = "TEST_BID_PDA";
   const asksPda = "TEST_ASK_PDA";
   const [asks, setAsks] = useState<OrderRowProps[]>([]);
   const [bids, setBids] = useState<OrderRowProps[]>([]);
+  const { program } = useProgram();
 
   const getBids = async () => {
     try {
       if (!program) throw new Error("No program found!!");
       // await initializeMarket(program);
-      const bidsResponse = await program.account.orders.fetch(
+      const res = await program.account.orders.fetch(
         new anchor.web3.PublicKey(bidsPda)
       );
       setBids(
-        bidsResponse?.sorted?.map((item) => {
+        (res?.sorted as any[])?.map((item) => {
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: priceFromOrderId(item?.orderId),
+            price: item.price.toString(),
             qty: Number(item?.qty.toString()).toFixed(2),
-          } as const;
+          };
         })
       );
     } catch (err) {
@@ -64,17 +65,17 @@ const Orderbook = () => {
     try {
       if (!program) throw new Error("No program found!!");
       // await initializeMarket(program);
-      const asksResponse = await program.account.orders.fetch(
+      const res = await program.account.orders.fetch(
         new anchor.web3.PublicKey(asksPda)
       );
       setAsks(
-        asksResponse?.sorted?.map((item) => {
+        (res?.sorted as any[])?.map((item) => {
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: priceFromOrderId(item?.orderId),
+            price: item.price.toString(),
             qty: Number(item?.qty.toString()).toFixed(2),
-          } as const;
+          };
         })
       );
     } catch (err) {

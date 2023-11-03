@@ -1,0 +1,1 @@
+export const FERMI_PROGRAM_ID = "4jnBbnBjuJB4Qpv7YzBdqb56wEDgC4cVB6uzUzEGMsiH"

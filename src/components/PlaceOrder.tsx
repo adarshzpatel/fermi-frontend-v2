@@ -21,11 +21,14 @@ const PlaceOrder = () => {
   const [price, setPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [processing, setProcessing] = useState(false);
+  
   const placeSellOrder = async ({
     limitPrice,
     maxCoinQty,
     maxNativeQty,
-  }: OrderParams) => {};
+  }: OrderParams) => {
+    
+  };
 
   const placeBuyOrder = async ({
     limitPrice,
