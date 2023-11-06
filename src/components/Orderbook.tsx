@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as anchor from "@project-serum/anchor";
 import useProgram from "@/hooks/useProgram";
+import { PublicKey } from "@solana/web3.js";
 
 // ORDERBOOK
 type OrderRowProps = {
@@ -16,8 +17,8 @@ const SkeletonRow = () => {
 
 const AskRow = ({ price, qty }: OrderRowProps) => {
   return (
-    <div className="flex justify-between items-center font-medium">
-      <span className="text-red-500">{qty}</span>
+    <div className="flex text-red-500 justify-between items-center font-medium">
+      <span >{qty}</span>
       <span>{price}</span>
     </div>
   );
@@ -25,27 +26,45 @@ const AskRow = ({ price, qty }: OrderRowProps) => {
 
 const BidRow = ({ price, qty }: OrderRowProps) => {
   return (
-    <div className="flex justify-between items-center font-medium">
+    <div className="flex text-green-500 justify-between items-center font-medium">
       <span>{price}</span>
-      <span className="text-green-500">{qty}</span>
+      <span >{qty}</span>
     </div>
   );
 };
 
 const Orderbook = () => {
-  const bidsPda = "TEST_BID_PDA";
-  const asksPda = "TEST_ASK_PDA";
-  const [asks, setAsks] = useState<OrderRowProps[]>([]);
-  const [bids, setBids] = useState<OrderRowProps[]>([]);
-  const { program } = useProgram();
+
+  const [asks, setAsks] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
+  const [bids, setBids] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
+  const { program, market } = useProgram();
+
+  useEffect(() => {
+    if (program) {
+      // getBids();
+      // getAsks();
+    }
+  }, [program]);
 
   const getBids = async () => {
     try {
       if (!program) throw new Error("No program found!!");
+      if (!market.marketPda) throw new Error("No market selected!!");
       // await initializeMarket(program);
+
+      const [bidsPda] = await anchor.web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("bids", "utf-8"),
+          new PublicKey(market?.marketPda).toBuffer(),
+        ],
+        program.programId
+      );
+
       const res = await program.account.orders.fetch(
         new anchor.web3.PublicKey(bidsPda)
       );
+
+      console.log("bids", res);
       setBids(
         (res?.sorted as any[])?.map((item) => {
           return {
@@ -64,10 +83,21 @@ const Orderbook = () => {
   const getAsks = async () => {
     try {
       if (!program) throw new Error("No program found!!");
-      // await initializeMarket(program);
+      if (!market.marketPda) throw new Error("No market selected!!");
+
+      const [asksPda] = await anchor.web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("asks", "utf-8"),
+          new PublicKey(market?.marketPda).toBuffer(),
+        ],
+        program.programId
+      );
+
       const res = await program.account.orders.fetch(
         new anchor.web3.PublicKey(asksPda)
       );
+
+      console.log("asks", res);
       setAsks(
         (res?.sorted as any[])?.map((item) => {
           return {

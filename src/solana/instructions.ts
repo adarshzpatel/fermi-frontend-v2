@@ -76,7 +76,7 @@ export const createBuyOrderIx = async ({
     const tx = await program.methods
       .newOrder(
         { bid: {} },
-        new anchor.BN(price),
+        new anchor.BN(price).mul(),
         new anchor.BN(qty),
         new anchor.BN(price).mul(new anchor.BN(qty)),
         { limit: {} }
@@ -161,8 +161,8 @@ export const createSellOrderIx = async ({
       .newOrder(
         { ask: {} },
         new anchor.BN(price),
-        new anchor.BN(1),
-        new anchor.BN(price),
+        new anchor.BN(qty),
+        new anchor.BN(price).mul(new anchor.BN(qty)),
         { limit: {} }
       )
       .accounts({

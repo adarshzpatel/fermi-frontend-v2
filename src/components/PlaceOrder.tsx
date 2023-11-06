@@ -9,6 +9,9 @@ import {
 } from "@nextui-org/react";
 import * as anchor from "@project-serum/anchor";
 import toast from "react-hot-toast";
+import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
+import useProgram from "@/hooks/useProgram";
 
 type OrderParams = {
   limitPrice: anchor.BN;
@@ -21,20 +24,8 @@ const PlaceOrder = () => {
   const [price, setPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [processing, setProcessing] = useState(false);
-  
-  const placeSellOrder = async ({
-    limitPrice,
-    maxCoinQty,
-    maxNativeQty,
-  }: OrderParams) => {
-    
-  };
-
-  const placeBuyOrder = async ({
-    limitPrice,
-    maxCoinQty,
-    maxNativeQty,
-  }: OrderParams) => {};
+  const connectedWallet = useAnchorWallet()
+  const {program} = useProgram()
 
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,18 +33,40 @@ const PlaceOrder = () => {
       setProcessing(true);
       if (price <= 0 || quantity <= 0) {
         toast.error("Price and Quantity must be greater than 0");
-        return;
+        throw new Error("Price and Quantity must be greater than 0");
+        return
       }
-      const limitPrice = new anchor.BN(price);
-      const maxCoinQty = new anchor.BN(quantity);
-      const maxNativeQty = new anchor.BN(price * quantity).mul(
-        new anchor.BN(anchor.web3.LAMPORTS_PER_SOL)
-      );
-      console.log(limitPrice, maxCoinQty, maxNativeQty);
+      if(!connectedWallet?.publicKey){
+        toast.error("Please connect your wallet");
+        throw new Error("Please connect your wallet");  
+        return
+      }
+      if(!program){
+        toast.error("Program not initialized");
+        throw new Error("Program not initialized")
+        return
+      }
+
       if (selectedMode === "buy") {
-        await placeBuyOrder({ limitPrice, maxCoinQty, maxNativeQty });
+        await createBuyOrderIx({
+          authority:connectedWallet?.publicKey,
+          coinMint: new anchor.web3.PublicKey("ewe"),
+          pcMint: new anchor.web3.PublicKey("dw"),
+          marketPda: new anchor.web3.PublicKey("dw"),
+          price:price.toString(),
+          qty:quantity.toString(),
+          program
+        })
       } else {
-        await placeSellOrder({ limitPrice, maxCoinQty, maxNativeQty });
+        await createSellOrderIx({
+          authority:connectedWallet?.publicKey,
+          coinMint: new anchor.web3.PublicKey("ewe"),
+          pcMint: new anchor.web3.PublicKey("dw"),
+          marketPda: new anchor.web3.PublicKey("dw"),
+          price:price.toString(),
+          qty:quantity.toString(),
+          program
+        })
       }
     } catch (err: any) {
       console.log("Error in handlePlaceOrder:", err);

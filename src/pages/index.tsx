@@ -3,14 +3,23 @@ import Layout from "@/components/Layout";
 import OpenOrders from "@/components/OpenOrders";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
-import {
-  Input,
-  Select,
-  SelectItem,
-} from "@nextui-org/react";
+import useProgram from "@/hooks/useProgram";
+import { MARKETS } from "@/solana/config";
+import { Input, Select, SelectItem } from "@nextui-org/react";
+import { useEffect } from "react";
 
 
 export default function Home() {
+  const { program ,market, setMarket } = useProgram();
+
+  useEffect(()=>{
+    const getMarket = async () => {
+      const res = await program?.account.market.fetch(market.marketPda)
+      console.log("coinLotSize",)
+    }
+    getMarket()
+  },[market])
+
   return (
     <Layout>
       <div className="flex flex-col gap-4 ">
@@ -23,17 +32,31 @@ export default function Home() {
               classNames={{
                 value: "text-lg font-medium",
                 label: "text-default-500",
-                trigger: "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",popover:"style-card shadow-lg" 
+                trigger:
+                  "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",
+                popover: "style-card shadow-lg",
               }}
-              defaultValue={"limit"}
-              disabledKeys={["market"]}
+              multiple={false}
+              selectedKeys={[market.marketPda]}
+              onSelectionChange={(key) => {
+                const marketPubKey = Array.from(key)[0];
+                const selectedMarket = MARKETS.find(
+                  (it) => it.marketPda === marketPubKey
+                );
+                if (!selectedMarket) return;
+                setMarket(selectedMarket);
+              }}
             >
-              <SelectItem key="bonk-usdc" textValue="BONK/USDC">
-                BONK/USDC
-              </SelectItem>
-              <SelectItem key="pepe-usdc" textValue="PEPE/USDC">
-                PEPE/USDC
-              </SelectItem>
+              {MARKETS.map((m) => (
+                <SelectItem
+                  aria-label={`${m.coinName} / ${m.pcName}`}
+                  key={m.marketPda}
+                  value={m.marketPda}
+                  textValue={`${m.coinName} / ${m.pcName}`}
+                >
+                  {m.coinName} / {m.pcName}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="flex-[4] flex gap-2">
