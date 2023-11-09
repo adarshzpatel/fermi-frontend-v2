@@ -73,14 +73,13 @@ export const createBuyOrderIx = async ({
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
 
+    const _price = new anchor.BN(price).mul(new anchor.BN("1000000"));
+    const _qty = new anchor.BN(qty).mul(new anchor.BN("1000000000"));
+
     const tx = await program.methods
-      .newOrder(
-        { bid: {} },
-        new anchor.BN(price).mul(),
-        new anchor.BN(qty),
-        new anchor.BN(price).mul(new anchor.BN(qty)),
-        { limit: {} }
-      )
+      .newOrder({ bid: {} }, _price, _qty, new anchor.BN(_price).mul(_qty), {
+        limit: {},
+      })
       .accounts({
         openOrders: openOrdersPda,
         market: marketPda,
@@ -157,14 +156,13 @@ export const createSellOrderIx = async ({
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
 
+    const _price = new anchor.BN(price).mul(new anchor.BN("1000000"));
+    const _qty = new anchor.BN(qty).mul(new anchor.BN("1000000000"));
+
     const tx = await program.methods
-      .newOrder(
-        { ask: {} },
-        new anchor.BN(price),
-        new anchor.BN(qty),
-        new anchor.BN(price).mul(new anchor.BN(qty)),
-        { limit: {} }
-      )
+      .newOrder({ ask: {} }, _price, _qty, new anchor.BN(_price).mul(_qty), {
+        limit: {},
+      })
       .accounts({
         openOrders: openOrdersPda,
         market: marketPda,

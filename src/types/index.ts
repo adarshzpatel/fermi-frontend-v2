@@ -61,5 +61,5 @@ export type Orderbook = {
   bids:Order[]
 }
 
-export type OpenOrders = OpenOrdersItem[]
-export type EventQueue = EventQueueItem[]
+export type OpenOrdersType = OpenOrdersItem[]
+export type EventQueueType = EventQueueItem[]

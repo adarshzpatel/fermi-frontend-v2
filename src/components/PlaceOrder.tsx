@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import useProgram from "@/hooks/useProgram";
+import { MarketType } from "@/types";
 
 type OrderParams = {
   limitPrice: anchor.BN;
@@ -19,13 +20,17 @@ type OrderParams = {
   maxNativeQty: anchor.BN;
 };
 
-const PlaceOrder = () => {
+type Props = {
+  selectedMarket: MarketType;
+};
+
+const PlaceOrder = ({ selectedMarket }: Props) => {
   const [selectedMode, setSelectedMode] = useState("buy");
   const [price, setPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const connectedWallet = useAnchorWallet()
-  const {program} = useProgram()
+  const connectedWallet = useAnchorWallet();
+  const { program } = useProgram();
 
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,39 +39,47 @@ const PlaceOrder = () => {
       if (price <= 0 || quantity <= 0) {
         toast.error("Price and Quantity must be greater than 0");
         throw new Error("Price and Quantity must be greater than 0");
-        return
+        return;
       }
-      if(!connectedWallet?.publicKey){
+      if (!connectedWallet?.publicKey) {
         toast.error("Please connect your wallet");
-        throw new Error("Please connect your wallet");  
-        return
+        throw new Error("Please connect your wallet");
+        return;
       }
-      if(!program){
+      if (!program) {
         toast.error("Program not initialized");
-        throw new Error("Program not initialized")
-        return
+        throw new Error("Program not initialized");
+        return;
       }
 
+      let tx;
+      console.log(selectedMarket)
       if (selectedMode === "buy") {
-        await createBuyOrderIx({
-          authority:connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey("ewe"),
-          pcMint: new anchor.web3.PublicKey("dw"),
-          marketPda: new anchor.web3.PublicKey("dw"),
-          price:price.toString(),
-          qty:quantity.toString(),
-          program
-        })
+        tx =await createBuyOrderIx({
+          authority: connectedWallet?.publicKey,
+          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
+          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
+          price: price.toString(),
+          qty: quantity.toString(),
+          program,
+        });
+        if(!tx) throw new Error("Error in creating buy order");
+        console.log("Placed buy order : ",tx);
+        toast("Buy order placed successfully")
       } else {
-        await createSellOrderIx({
-          authority:connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey("ewe"),
-          pcMint: new anchor.web3.PublicKey("dw"),
-          marketPda: new anchor.web3.PublicKey("dw"),
-          price:price.toString(),
-          qty:quantity.toString(),
-          program
-        })
+        tx = await createSellOrderIx({
+          authority: connectedWallet?.publicKey,
+          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
+          price: price.toString(),
+          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
+          qty: quantity.toString(),
+          program,
+        });
+        if(!tx) throw new Error("Error in creating sell order");
+        console.log("Placed sell order : ",tx);
+        toast("Sell order placed successfully")
       }
     } catch (err: any) {
       console.log("Error in handlePlaceOrder:", err);
@@ -95,7 +108,7 @@ const PlaceOrder = () => {
           placeholder="Select order type"
           selectedKeys={["limit"]}
           disabledKeys={["market"]}
-            classNames={{
+          classNames={{
             trigger:
               "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",
             popover: "style-card shadow-lg",

@@ -1,48 +1,70 @@
-import {Wallet, web3, Program, AnchorProvider } from "@project-serum/anchor";
-import { AnchorWallet,  } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey,Keypair,  SystemProgram, Transaction } from "@solana/web3.js";
+import { Wallet, web3, Program, AnchorProvider } from "@project-serum/anchor";
+import { AnchorWallet } from "@solana/wallet-adapter-react";
+import {
+  Connection,
+  PublicKey,
+  Keypair,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import { FERMI_PROGRAM_ID } from "@/solana/config";
-import { IDL } from "@/solana/idl";
+import { FermiDex, IDL } from "@/solana/idl";
 import * as spl from "@solana/spl-token";
 
-export const getProvider = (_connection:Connection,_wallet:AnchorWallet) => {
-  try{
-    if(!_connection){
-      throw new Error("No connection found")
+export const getProvider = (_connection: Connection, _wallet: AnchorWallet) => {
+  try {
+    if (!_connection) {
+      throw new Error("No connection found");
     }
-    if(!_wallet){ 
-      throw new Error("No wallet found")
+    if (!_wallet) {
+      throw new Error("No wallet found");
     }
     const provider = new AnchorProvider(
       _connection,
       _wallet,
       AnchorProvider.defaultOptions()
     );
-    console.log("Got Provider",{provider})
     return provider;
-  }catch(err){
-    console.log("Error in getProvider",err)
+  } catch (err) {
+    console.log("Error in getProvider", err);
   }
-}
+};
 
-export const getProgram = (provider:AnchorProvider) => {
-  try{
-    if(!provider){
-      throw new Error("No Provider found")
+export const getProgram = (provider: AnchorProvider) => {
+  try {
+    if (!provider) {
+      throw new Error("No Provider found");
     }
-    const programId = new PublicKey(FERMI_PROGRAM_ID)
+    const programId = new PublicKey(FERMI_PROGRAM_ID);
     const program = new Program(IDL, programId, provider);
-    console.log("Got program",{program})
     return program;
-  }catch(err){
-    console.log("Error in getProvider",err)
+  } catch (err) {
+    console.log("Error in getProvider", err);
   }
-}
+};
+
+export const getOpenOrders = async (
+  authorityPubKey: PublicKey,
+  marketPda: web3.PublicKey,
+  program: Program<FermiDex>
+) => {
+  const [openOrdersPda] = await web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("open-orders", "utf-8"),
+      marketPda.toBuffer(),
+      authorityPubKey.toBuffer(),
+    ],
+    new web3.PublicKey(program?.programId)
+  );
+
+  const openOrders = await program.account.openOrders.fetch(openOrdersPda);
+  return openOrders;
+};
 
 export const createMint = async (
   provider: AnchorProvider,
   mint: Keypair,
-  decimal: number,
+  decimal: number
 ) => {
   try {
     const tx = new Transaction();
@@ -53,17 +75,17 @@ export const createMint = async (
         newAccountPubkey: mint.publicKey,
         space: spl.MintLayout.span,
         lamports: await provider.connection.getMinimumBalanceForRentExemption(
-          spl.MintLayout.span,
+          spl.MintLayout.span
         ),
-      }),
+      })
     );
     tx.add(
       spl.createInitializeMintInstruction(
         mint.publicKey,
         decimal,
         provider.wallet.publicKey,
-        provider.wallet.publicKey,
-      ),
+        provider.wallet.publicKey
+      )
     );
     await provider.sendAndConfirm(tx, [mint]);
   } catch (error) {
@@ -76,7 +98,7 @@ export const createAssociatedTokenAccount = async (
   provider: AnchorProvider,
   mint: PublicKey,
   ata: PublicKey,
-  owner: PublicKey,
+  owner: PublicKey
 ) => {
   try {
     const tx = new Transaction();
@@ -85,8 +107,8 @@ export const createAssociatedTokenAccount = async (
         provider.wallet.publicKey,
         ata,
         owner,
-        mint,
-      ),
+        mint
+      )
     );
     await provider.sendAndConfirm(tx, []);
   } catch (error) {
@@ -99,7 +121,7 @@ export const mintTo = async (
   provider: AnchorProvider,
   mint: PublicKey,
   ta: PublicKey,
-  amount: bigint,
+  amount: bigint
 ) => {
   try {
     const tx = new Transaction();
@@ -109,8 +131,8 @@ export const mintTo = async (
         ta,
         provider.wallet.publicKey,
         amount,
-        [],
-      ),
+        []
+      )
     );
     await provider.sendAndConfirm(tx, []);
   } catch (error) {
@@ -125,22 +147,19 @@ export const fetchTokenBalance = async (
   connection: Connection
 ) => {
   try {
-
     const associatedTokenAddress = await spl.getAssociatedTokenAddress(
       mintPubKey,
       userPubKey,
       false
-    )
-    const account = await spl.getAccount(connection,associatedTokenAddress);
+    );
+    const account = await spl.getAccount(connection, associatedTokenAddress);
 
     return account?.amount.toString();
-
   } catch (error) {
     console.error("Error in fetchTokenBalance:", error);
     throw error;
   }
-}
-
+};
 
 export const airdropCustomToken = async (
   userKp: Keypair,
@@ -157,14 +176,15 @@ export const airdropCustomToken = async (
     const provider = new AnchorProvider(
       connection,
       wallet,
-      AnchorProvider.defaultOptions(),
+      AnchorProvider.defaultOptions()
     );
 
-    const authorityCoinTokenAccount: PublicKey = await spl.getAssociatedTokenAddress(
-      new web3.PublicKey(coinMint),
-      authority.publicKey,
-      false,
-    );
+    const authorityCoinTokenAccount: PublicKey =
+      await spl.getAssociatedTokenAddress(
+        new web3.PublicKey(coinMint),
+        authority.publicKey,
+        false
+      );
 
     if (!(await connection.getAccountInfo(authorityCoinTokenAccount))) {
       await createAssociatedTokenAccount(
@@ -182,11 +202,14 @@ export const airdropCustomToken = async (
       authorityCoinTokenAccount,
       BigInt(amount.toString())
     );
-    console.log("✅ Coin tokens minted to ", authorityCoinTokenAccount.toString());
+    console.log(
+      "✅ Coin tokens minted to ",
+      authorityCoinTokenAccount.toString()
+    );
 
     return authorityCoinTokenAccount;
   } catch (err) {
-    console.log('Something went wrong while airdropping coin token.');
+    console.log("Something went wrong while airdropping coin token.");
     console.log(err);
   }
 };

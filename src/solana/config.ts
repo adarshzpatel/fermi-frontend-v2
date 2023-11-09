@@ -1,7 +1,7 @@
 import { MarketType } from "@/types"
 import { Keypair } from "@solana/web3.js";
 
-export const FERMI_PROGRAM_ID = "4jnBbnBjuJB4Qpv7YzBdqb56wEDgC4cVB6uzUzEGMsiH"
+export const FERMI_PROGRAM_ID = "4jde1a6MyoiwLVqB6UH5mBJp3gbpk1wcth8TZJfnf1V9"
 
 export const MARKETS:MarketType[] = [
   {

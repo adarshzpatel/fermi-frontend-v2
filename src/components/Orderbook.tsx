@@ -34,15 +34,13 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const Orderbook = () => {
-
   const [asks, setAsks] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
   const [bids, setBids] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
   const { program, market } = useProgram();
-
   useEffect(() => {
     if (program) {
-      // getBids();
-      // getAsks();
+      getBids();
+      getAsks();
     }
   }, [program]);
 

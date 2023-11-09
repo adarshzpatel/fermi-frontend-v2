@@ -21,7 +21,7 @@ const TradePage = () => {
   }, [selectedMarketPda]);
 
   // if no market is provided in query
-  if (!selectedMarket) {
+  if (!selectedMarketPda) {
     const params = new URLSearchParams();
     params.set("market", MARKETS[0].marketPda);
     router.push(`/trade?${params.toString()}`);
@@ -102,7 +102,7 @@ const TradePage = () => {
         <div className="flex  gap-4">
           <div className="flex-[3] gap-4 flex flex-col">
             <div className="flex gap-4">
-              <PlaceOrder />
+              <PlaceOrder selectedMarket={selectedMarket} />
               <div className=" flex-[2] style-card p-4">
                 <Chart />
               </div>
