@@ -3,30 +3,29 @@ import Layout from "@/components/Layout";
 import OpenOrders from "@/components/OpenOrders";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
-import useProgram from "@/hooks/useProgram";
 import { MARKETS } from "@/solana/config";
+import { MarketType } from "@/types";
 import { Input, Select, SelectItem } from "@nextui-org/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useMemo } from "react";
 
-import { useRouter } from "next/navigation";
+const TradePage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedMarketPda = searchParams.get("market");
 
-export default function Home() {
-  const { program , setMarket } = useProgram();
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const market = searchParams.get('market') as string
-  console.log(searchParams)
-  // if no market is selected 
-  if(!market){
+  const selectedMarket: MarketType = useMemo(() => {
+    return (
+      MARKETS.find((it) => it.marketPda === selectedMarketPda) ?? MARKETS[0]
+    );
+  }, [selectedMarketPda]);
 
+  // if no market is provided in query
+  if (!selectedMarket) {
+    const params = new URLSearchParams();
+    params.set("market", MARKETS[0].marketPda);
+    router.push(`/trade?${params.toString()}`);
   }
-  // useEffect(()=>{
-  //   const getMarket = async () => {
-  //     const res = await program?.account.market.fetch(market.marketPda)
-  //     console.log("coinLotSize",)
-  //   }
-  //   getMarket()
-  // },[market])
 
   return (
     <Layout>
@@ -45,14 +44,16 @@ export default function Home() {
                 popover: "style-card shadow-lg",
               }}
               multiple={false}
-              selectedKeys={[market]}
+              selectedKeys={[selectedMarket.marketPda]}
               onSelectionChange={(key) => {
                 const marketPubKey = Array.from(key)[0];
-                const selectedMarket = MARKETS.find(
+                const _selectedMarket = MARKETS.find(
                   (it) => it.marketPda === marketPubKey
                 );
-                if (!selectedMarket) return;
-                setMarket(selectedMarket);
+                if (!_selectedMarket) return;
+                const params = new URLSearchParams();
+                params.set("market", _selectedMarket.marketPda);
+                router.push(`/trade?${params.toString()}`);
               }}
             >
               {MARKETS.map((m) => (
@@ -117,4 +118,6 @@ export default function Home() {
       </div>
     </Layout>
   );
-}
+};
+
+export default TradePage;

@@ -93,9 +93,9 @@ const PlaceOrder = () => {
         <Select
           label="Order type"
           placeholder="Select order type"
-          defaultValue={"limit"}
+          selectedKeys={["limit"]}
           disabledKeys={["market"]}
-          classNames={{
+            classNames={{
             trigger:
               "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",
             popover: "style-card shadow-lg",
