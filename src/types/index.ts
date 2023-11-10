@@ -61,5 +61,13 @@ export type Orderbook = {
   bids:Order[]
 }
 
+
+export type TokenBalances = {
+  nativeCoinFree:string 
+  natieCoinTotal:string
+  nativePcFree:string
+  nativePcTotal:string
+}
+
 export type OpenOrdersType = OpenOrdersItem[]
 export type EventQueueType = EventQueueItem[]

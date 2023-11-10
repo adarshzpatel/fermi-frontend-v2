@@ -1,20 +1,9 @@
-import { ProgramContext } from "@/contexts/program";
-import { useContext } from "react";
-
-const useProgram = () => useContext(ProgramContext);
-export default useProgramimport { MARKETS } from "@/solana/config";
+import { MARKETS } from "@/solana/config";
 import { FermiDex } from "@/solana/idl";
 import { EventQueueType, MarketType, OpenOrdersType, Order } from "@/types";
 import { Program } from "@project-serum/anchor";
 import {create} from 'zustand'
 // Zustand store to store market data
-
-type TokenBalances = {
-  nativeCoinFree:string 
-  natieCoinTotal:string
-  nativePcFree:string
-  nativePcTotal:string
-}
 
 type ProgramStore = {
   program:Program<FermiDex>
