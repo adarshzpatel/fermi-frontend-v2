@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { EventQueueType } from "@/types";
 
-type EventQStore = {
+type EventQueueStore = {
   eventQ: EventQueueType | null;
   setEventQ: (eventQ: EventQueueType) => void;
 };
 
-export const useEventQStore = create<EventQStore>((set) => ({
+export const useEventQueueStore = create<EventQueueStore>((set) => ({
   eventQ: null,
   setEventQ: (eventQ: EventQueueType) => set({ eventQ }),
 }));

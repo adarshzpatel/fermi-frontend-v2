@@ -39,12 +39,16 @@ export type Balances = {
 }
 
 export type EventQueueItem = {
-  price:number ,
-  owner:string,
+  idx:number
+  price:number 
+  owner:string
   ownerSlot:string 
-  orderId:string ,
+  orderId:string 
+  eventFlags:number
   nativeQtyReleased:string 
   nativeQtyPaid:string
+  orderIdSecond:string
+  finalised:string
 }
 
 export type OpenOrdersItem = {
@@ -64,7 +68,7 @@ export type Orderbook = {
 
 export type TokenBalances = {
   nativeCoinFree:string 
-  natieCoinTotal:string
+  nativeCoinTotal:string
   nativePcFree:string
   nativePcTotal:string
 }

@@ -11,7 +11,7 @@ import * as anchor from "@project-serum/anchor";
 import toast from "react-hot-toast";
 import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-import useProgram from "@/hooks/useProgram";
+import useProgram from "@/hooks/useFermiProgram";
 import { MarketType } from "@/types";
 
 type OrderParams = {

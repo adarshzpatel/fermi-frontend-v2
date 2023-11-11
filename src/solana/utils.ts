@@ -10,6 +10,29 @@ import {
 import { FERMI_PROGRAM_ID } from "@/solana/config";
 import { FermiDex, IDL } from "@/solana/idl";
 import * as spl from "@solana/spl-token";
+import { EventQueueItem } from "@/types";
+
+
+export const parseEventQ = (eventQ:any) => {
+  const events:EventQueueItem[] = [] 
+  for(let i = 0;i<(eventQ as any[]).length;i++){
+    const e = eventQ[i];
+    if(e.orderId.toString() === '0') continue
+    const event:EventQueueItem= {} as EventQueueItem
+    event['idx'] = i;
+    event['orderId'] = e.orderId.toString()
+    event['orderIdSecond'] = e.orderIdSecond.toString();
+    event['owner'] = e.owner.toString();
+    event['eventFlags'] = e.eventFlags
+    event['ownerSlot'] = e.ownerSlot
+    event['finalised'] = e.finalised 
+    event['nativeQtyReleased'] = e.nativeQtyReleased.toString()
+    event['nativeQtyPaid'] = e.nativeQtyPaid.toString()
+    events.push(event)
+  }
+  return events;
+}
+
 
 export const getProvider = (_connection: Connection, _wallet: AnchorWallet) => {
   try {

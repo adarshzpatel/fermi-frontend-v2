@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import * as anchor from "@project-serum/anchor";
-import useProgram from "@/hooks/useProgram";
+import useProgram from "@/hooks/useFermiProgram";
 import { PublicKey } from "@solana/web3.js";
+import useOrderbook from "@/hooks/useOrderbook";
 
 // ORDERBOOK
 type OrderRowProps = {
@@ -34,83 +35,9 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const Orderbook = () => {
-  const [asks, setAsks] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
-  const [bids, setBids] = useState<OrderRowProps[]>([{price:'1O',qty:'1'}, {price:'20',qty:'1'}, ]);
-  const { program, market } = useProgram();
-  useEffect(() => {
-    if (program) {
-      getBids();
-      getAsks();
-    }
-  }, [program]);
+  const {asks,bids} = useOrderbook()
 
-  const getBids = async () => {
-    try {
-      if (!program) throw new Error("No program found!!");
-      if (!market.marketPda) throw new Error("No market selected!!");
-      // await initializeMarket(program);
-
-      const [bidsPda] = await anchor.web3.PublicKey.findProgramAddress(
-        [
-          Buffer.from("bids", "utf-8"),
-          new PublicKey(market?.marketPda).toBuffer(),
-        ],
-        program.programId
-      );
-
-      const res = await program.account.orders.fetch(
-        new anchor.web3.PublicKey(bidsPda)
-      );
-
-      console.log("bids", res);
-      setBids(
-        (res?.sorted as any[])?.map((item) => {
-          return {
-            ...item,
-            orderId: item.orderId.toString(),
-            price: item.price.toString(),
-            qty: Number(item?.qty.toString()).toFixed(2),
-          };
-        })
-      );
-    } catch (err) {
-      console.log("Error in getBids", err);
-    }
-  };
-
-  const getAsks = async () => {
-    try {
-      if (!program) throw new Error("No program found!!");
-      if (!market.marketPda) throw new Error("No market selected!!");
-
-      const [asksPda] = await anchor.web3.PublicKey.findProgramAddress(
-        [
-          Buffer.from("asks", "utf-8"),
-          new PublicKey(market?.marketPda).toBuffer(),
-        ],
-        program.programId
-      );
-
-      const res = await program.account.orders.fetch(
-        new anchor.web3.PublicKey(asksPda)
-      );
-
-      console.log("asks", res);
-      setAsks(
-        (res?.sorted as any[])?.map((item) => {
-          return {
-            ...item,
-            orderId: item.orderId.toString(),
-            price: item.price.toString(),
-            qty: Number(item?.qty.toString()).toFixed(2),
-          };
-        })
-      );
-    } catch (err) {
-      console.log("Error in getAsks", err);
-    }
-  };
-
+  
   return (
     <>
       <h6 className="font-heading font-medium">Orderbook</h6>

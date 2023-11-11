@@ -1,4 +1,4 @@
-import useProgram from "@/hooks/useProgram";
+import useProgram from "@/hooks/useFermiProgram";
 import { getOpenOrders } from "@/solana/utils";
 
 import {
