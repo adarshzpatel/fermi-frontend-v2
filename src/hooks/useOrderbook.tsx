@@ -4,6 +4,7 @@ import useFermiProgram from "./useFermiProgram";
 import useMarket from "./useMarket";
 import * as anchor from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
+import { priceFromOrderId } from "@/solana/utils";
 
 const useOrderbook = () => {
   const { asks, bids, setAsks, setBids } = useOrderbookStore();
@@ -27,15 +28,13 @@ const useOrderbook = () => {
       const res = await program.account.orders.fetch(
         new anchor.web3.PublicKey(bidsPda)
       );
-
-      console.log("bids", res);
       setBids(
         (res?.sorted as any[])?.map((item) => {
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: item.price.toString(),
-            qty: Number(item?.qty.toString()).toFixed(2),
+            price: priceFromOrderId(item?.orderId, currentMarket.pcLotSize),
+            qty: Number(item?.qty) / currentMarket.coinLotSize,
           };
         })
       );
@@ -61,14 +60,13 @@ const useOrderbook = () => {
         new anchor.web3.PublicKey(asksPda)
       );
 
-      console.log("asks", res);
       setAsks(
         (res?.sorted as any[])?.map((item) => {
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: item.price.toString(),
-            qty: Number(item?.qty.toString()).toFixed(2),
+            price: priceFromOrderId(item?.orderId, currentMarket.pcLotSize),
+            qty: (Number(item?.qty) / currentMarket.coinLotSize),
           };
         })
       );

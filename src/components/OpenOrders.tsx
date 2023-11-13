@@ -1,5 +1,5 @@
 import useProgram from "@/hooks/useFermiProgram";
-import { getOpenOrders } from "@/solana/utils";
+import useOpenOrdersAccount from "@/hooks/useOpenOrdersAccount";
 
 import {
   Button,
@@ -21,24 +21,10 @@ const OpenOrders = () => {
   const connectedWallet = useAnchorWallet();
   const searchParams = useSearchParams();
   const marketPda = searchParams.get("market");
-  const [orderIds, setOrderIds] = useState<string[]>([]);
-  useEffect(() => {
-    (async () => {
-      if (!connectedWallet?.publicKey || !program || !marketPda) return;
-      const openOrdersResponse = await getOpenOrders(
-        connectedWallet?.publicKey,
-        new PublicKey(marketPda),
-        program
-      );
-      const orders = openOrdersResponse?.orders.map((o) =>  o.toString()).filter((o)=>o !== '0');
-      console.log("My open order ids",orders)
-      setOrderIds(orders);
-    })();
-  }, [connectedWallet, program, marketPda]);
-  
+  const { openOrders } = useOpenOrdersAccount();
 
   return (
-    <>
+    <div>
       <h6 className="font-heading font-medium">Open Orders</h6>
       <Table
         removeWrapper
@@ -51,18 +37,17 @@ const OpenOrders = () => {
           <TableColumn className="text-center">Side</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
-        <TableBody>
-          {orderIds.map((id) => (
-            <TableRow key={id}>
-              <TableCell className="text-center">{10}</TableCell>
-              <TableCell className="text-center">{1}</TableCell>
+        <TableBody emptyContent="No open order found!">
+          {openOrders?.map((order) => (
+            <TableRow key={order.orderId}>
+              <TableCell className="text-center">{order.price}</TableCell>
+              <TableCell className="text-center">{order.qty}</TableCell>
               <TableCell className="text-center">
                 <Chip
-                  // color={order.type === "Ask" ? "danger" : "success"}
+                  color={order.side === "Ask" ? "danger" : "success"}
                   variant="flat"
                 >
-                  {" "}
-                  BUY
+                  {order.side}
                   {/* {order.type} */}
                 </Chip>
               </TableCell>
@@ -78,7 +63,7 @@ const OpenOrders = () => {
           ))}
         </TableBody>
       </Table>
-    </>
+    </div>
   );
 };
 

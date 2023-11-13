@@ -13,6 +13,7 @@ import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import useProgram from "@/hooks/useFermiProgram";
 import { MarketType } from "@/types";
+import useMarket from "@/hooks/useMarket";
 
 type OrderParams = {
   limitPrice: anchor.BN;
@@ -20,17 +21,14 @@ type OrderParams = {
   maxNativeQty: anchor.BN;
 };
 
-type Props = {
-  selectedMarket: MarketType;
-};
-
-const PlaceOrder = ({ selectedMarket }: Props) => {
+const PlaceOrder = () => {
   const [selectedMode, setSelectedMode] = useState("buy");
   const [price, setPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [processing, setProcessing] = useState(false);
   const connectedWallet = useAnchorWallet();
   const { program } = useProgram();
+  const { currentMarket } = useMarket();
 
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,35 +49,40 @@ const PlaceOrder = ({ selectedMarket }: Props) => {
         throw new Error("Program not initialized");
         return;
       }
+      if (!currentMarket) {
+        toast.error("Market not selected");
+        throw new Error("Market not selected");
+        return;
+      }
 
       let tx;
-      console.log(selectedMarket)
+      console.log(currentMarket);
       if (selectedMode === "buy") {
-        tx =await createBuyOrderIx({
+        tx = await createBuyOrderIx({
           authority: connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
-          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
-          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
+          coinMint: new anchor.web3.PublicKey(currentMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(currentMarket?.pcMint),
+          marketPda: new anchor.web3.PublicKey(currentMarket?.marketPda),
           price: price.toString(),
           qty: quantity.toString(),
           program,
         });
-        if(!tx) throw new Error("Error in creating buy order");
-        console.log("Placed buy order : ",tx);
-        toast("Buy order placed successfully")
+        if (!tx) throw new Error("Error in creating buy order");
+        console.log("Placed buy order : ", tx);
+        toast("Buy order placed successfully");
       } else {
         tx = await createSellOrderIx({
           authority: connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
-          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
+          coinMint: new anchor.web3.PublicKey(currentMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(currentMarket?.pcMint),
           price: price.toString(),
-          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
+          marketPda: new anchor.web3.PublicKey(currentMarket?.marketPda),
           qty: quantity.toString(),
           program,
         });
-        if(!tx) throw new Error("Error in creating sell order");
-        console.log("Placed sell order : ",tx);
-        toast("Sell order placed successfully")
+        if (!tx) throw new Error("Error in creating sell order");
+        console.log("Placed sell order : ", tx);
+        toast("Sell order placed successfully");
       }
     } catch (err: any) {
       console.log("Error in handlePlaceOrder:", err);

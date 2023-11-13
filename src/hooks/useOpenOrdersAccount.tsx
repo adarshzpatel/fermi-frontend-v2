@@ -4,6 +4,7 @@ import useFermiProgram from "./useFermiProgram";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import useMarket from "./useMarket";
 import * as anchor from "@project-serum/anchor";
+import useOrderbook from "./useOrderbook";
 
 const useOpenOrdersAccount = () => {
   const { openOrders, setOpenOrders, setTokenBalances, tokenBalances } =
@@ -11,6 +12,7 @@ const useOpenOrdersAccount = () => {
   const { program } = useFermiProgram();
   const connectedWallet = useAnchorWallet();
   const { currentMarket } = useMarket();
+  const { asks, bids } = useOrderbook();
 
   const fetchOpenOrders = async () => {
     try {
@@ -32,7 +34,7 @@ const useOpenOrdersAccount = () => {
       const openOrdersResponse = await program.account.openOrders.fetch(
         openOrdersPda
       );
-
+      console.log("Open Orders Response", openOrdersResponse)
       setTokenBalances({
         nativeCoinFree: openOrdersResponse.nativeCoinFree.toString(),
         nativeCoinTotal: openOrdersResponse.nativeCoinTotal.toString(),
@@ -45,8 +47,19 @@ const useOpenOrdersAccount = () => {
           return item.toString();
         })
         .filter((item) => item !== "0");
-      console.log("orderIds", orderIds);
-      setOpenOrders(orderIds);
+      // match order ids from orderbook ( asks and bids ) and add it to myOrders
+      if (orderIds.length > 0) {
+        const asksMatched = asks
+          .filter((item) => orderIds.includes(item.orderId))
+          .map((order) => ({ ...order, side: "Ask" }));
+
+        const bidsMatched = bids
+          .filter((item) => orderIds.includes(item.orderId))
+          .map((order) => ({ ...order, side: "Bid" }));
+
+        const myOrders = [...asksMatched, ...bidsMatched];
+        setOpenOrders(myOrders);
+      }
     } catch (err) {
       console.log("Error in fetchOpenOrders", err);
     }

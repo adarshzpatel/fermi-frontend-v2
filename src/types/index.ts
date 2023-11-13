@@ -21,13 +21,6 @@ export type MarketType = {
   coinLotSize:number
 }
 
-export type Order = {
-  price:string ,
-  qty:string
-  orderId:string 
-  owner:PublicKey,
-  ownerSlot:string
-}
 
 export type Side = "Ask" | "Bid"
 
@@ -50,13 +43,20 @@ export type EventQueueItem = {
   orderIdSecond:string
   finalised:string
 }
+export type Order = {
+  price:string ,
+  qty:string
+  orderId:string 
+  owner:PublicKey,
+  ownerSlot:string
+}
 
 export type OpenOrdersItem = {
   price:string 
   orderId:string,
-  type: Side
+  side: string
   qty:string,
-  owner:string,
+  owner:PublicKey,
   ownerSlot:string
 }
 

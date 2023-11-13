@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import { MarketType } from '@/types';
+import { MARKETS } from '@/solana/config';
 
 type MarketStore = {
   market: MarketType | null;
@@ -7,6 +8,6 @@ type MarketStore = {
 };
 
 export const useMarketStore = create<MarketStore>((set) => ({
-  market: null,
+  market: MARKETS[0],
   setMarket: (market: MarketType) => set({ market }),
 }));

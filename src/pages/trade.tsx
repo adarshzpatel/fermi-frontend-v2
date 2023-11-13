@@ -3,29 +3,29 @@ import Layout from "@/components/Layout";
 import OpenOrders from "@/components/OpenOrders";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
+import useMarket from "@/hooks/useMarket";
+import useOpenOrdersAccount from "@/hooks/useOpenOrdersAccount";
 import { MARKETS } from "@/solana/config";
-import { MarketType } from "@/types";
+import { useOpenOrderAccountStore } from "@/stores/useOpenOrderAccount";
 import { Input, Select, SelectItem } from "@nextui-org/react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect } from "react";
 
 const TradePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedMarketPda = searchParams.get("market");
 
-  const selectedMarket: MarketType = useMemo(() => {
-    return (
-      MARKETS.find((it) => it.marketPda === selectedMarketPda) ?? MARKETS[0]
-    );
-  }, [selectedMarketPda]);
+  const { currentMarket, changeMarket } = useMarket();
+  const tokenBalances = useOpenOrderAccountStore(
+    (state) => state.tokenBalances
+  );
 
-  // if no market is provided in query
-  if (!selectedMarketPda) {
-    const params = new URLSearchParams();
-    params.set("market", MARKETS[0].marketPda);
-    router.push(`/trade?${params.toString()}`);
-  }
+  useEffect(() => {
+    if (!selectedMarketPda) {
+      changeMarket(MARKETS[0].marketPda);
+    }
+  }, []);
 
   return (
     <Layout>
@@ -44,16 +44,11 @@ const TradePage = () => {
                 popover: "style-card shadow-lg",
               }}
               multiple={false}
-              selectedKeys={[selectedMarket.marketPda]}
+              selectedKeys={[currentMarket?.marketPda || MARKETS[0].marketPda]}
               onSelectionChange={(key) => {
                 const marketPubKey = Array.from(key)[0];
-                const _selectedMarket = MARKETS.find(
-                  (it) => it.marketPda === marketPubKey
-                );
-                if (!_selectedMarket) return;
-                const params = new URLSearchParams();
-                params.set("market", _selectedMarket.marketPda);
-                router.push(`/trade?${params.toString()}`);
+
+                changeMarket(marketPubKey as string);
               }}
             >
               {MARKETS.map((m) => (
@@ -71,29 +66,29 @@ const TradePage = () => {
           <div className="flex-[4] flex gap-2">
             <Input
               as={"div"}
-              label="Market cap"
-              value="0.00"
+              label="Native coin Free"
+              value={tokenBalances?.nativeCoinFree}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
-              label="Market cap"
-              value="0.00"
+              label="Native coin total"
+              value={tokenBalances?.nativeCoinTotal}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
-              label="Market cap"
-              value="0.00"
+              label="Native pc free"
+              value={tokenBalances?.nativePcFree}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
-              label="Market cap"
-              value="0.00"
+              label="Natice pc total"
+              value={tokenBalances?.nativePcTotal}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
@@ -102,7 +97,7 @@ const TradePage = () => {
         <div className="flex  gap-4">
           <div className="flex-[3] gap-4 flex flex-col">
             <div className="flex gap-4">
-              <PlaceOrder selectedMarket={selectedMarket} />
+              <PlaceOrder />
               <div className=" flex-[2] style-card p-4">
                 <Chart />
               </div>

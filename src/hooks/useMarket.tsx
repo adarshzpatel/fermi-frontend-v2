@@ -1,6 +1,6 @@
 import { MARKETS } from "@/solana/config";
 import { useMarketStore } from "@/stores/useMarketStore";
-import { useSearchParams } from "next/navigation";
+
 import { useRouter } from "next/router";
 
 const useMarket = () => {
@@ -18,6 +18,7 @@ const useMarket = () => {
     params.set("market", MARKETS[0].marketPda);
     router.push(`${router.pathname}?${params.toString()}`);
   };
+  
   return { currentMarket: market, changeMarket };
 };
 
