@@ -1,8 +1,7 @@
+import { useFermiStore } from "@/stores/fermiStore";
 import { useEffect, useState } from "react";
-import * as anchor from "@project-serum/anchor";
-import useProgram from "@/hooks/useFermiProgram";
-import { PublicKey } from "@solana/web3.js";
-import useOrderbook from "@/hooks/useOrderbook";
+
+
 
 // ORDERBOOK
 type OrderRowProps = {
@@ -35,8 +34,7 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const Orderbook = () => {
-  const {asks,bids} = useOrderbook()
-
+  const {asks,bids} = useFermiStore(s => ({asks:s.asks,bids:s.bids}))
   
   return (
     <>

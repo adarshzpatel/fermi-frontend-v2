@@ -42,6 +42,7 @@ export type EventQueueItem = {
   nativeQtyPaid:string
   orderIdSecond:string
   finalised:string
+  timestamp:string
 }
 export type Order = {
   price:string ,

@@ -14,13 +14,14 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { FERMI_PROGRAM_ID } from "@/solana/config";
-import { FermiDex, IDL } from "@/solana/idl";
+
 import * as spl from "@solana/spl-token";
 import { EventQueueItem } from "@/types";
+import { FermiDex, IDL } from "./idl";
 
 export const priceFromOrderId = (orderId: BN, decimals: number) => {
   const price = BN(orderId).shrn(64).toNumber();
-  return price / decimals
+  return price / decimals;
 };
 
 export const timestampFromOrderId = (orderId: BN) => {
@@ -28,7 +29,7 @@ export const timestampFromOrderId = (orderId: BN) => {
   return timestamp;
 };
 
-export const parseEventQ = (eventQ: any) => {
+export function parseEventQ(eventQ: any) {
   const events: EventQueueItem[] = [];
   for (let i = 0; i < (eventQ as any[]).length; i++) {
     const e = eventQ[i];
@@ -43,10 +44,11 @@ export const parseEventQ = (eventQ: any) => {
     event["finalised"] = e.finalised;
     event["nativeQtyReleased"] = e.nativeQtyReleased.toString();
     event["nativeQtyPaid"] = e.nativeQtyPaid.toString();
+    event["timestamp"] = e.timestamp.toString()
     events.push(event);
   }
   return events;
-};
+}
 
 export const getProvider = (_connection: Connection, _wallet: AnchorWallet) => {
   try {

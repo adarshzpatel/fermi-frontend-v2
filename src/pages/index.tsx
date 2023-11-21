@@ -3,7 +3,6 @@ import Layout from "@/components/Layout";
 import OpenOrders from "@/components/OpenOrders";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
-import useProgram from "@/hooks/useFermiProgram";
 import { MARKETS } from "@/solana/config";
 import { Input, Link, Select, SelectItem } from "@nextui-org/react";
 import { useSearchParams } from "next/navigation";

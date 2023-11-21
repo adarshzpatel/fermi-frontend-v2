@@ -1,31 +1,72 @@
 import Chart from "@/components/Chart";
 import Layout from "@/components/Layout";
+
 import OpenOrders from "@/components/OpenOrders";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
-import useMarket from "@/hooks/useMarket";
-import useOpenOrdersAccount from "@/hooks/useOpenOrdersAccount";
 import { MARKETS } from "@/solana/config";
-import { useOpenOrderAccountStore } from "@/stores/useOpenOrderAccount";
+import { useFermiStore } from "@/stores/fermiStore";
+
 import { Input, Select, SelectItem } from "@nextui-org/react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 const TradePage = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedMarketPda = searchParams.get("market");
+  const {
+    setProgram,
+    tokenBalances,
+    setSelectedMarket,
+    selectedMarket,
+    loadData,
+  } = useFermiStore();
+  const { connection } = useConnection();
+  const currentWallet = useAnchorWallet();
+  const [loading, setLoading] = useState(false);
 
-  const { currentMarket, changeMarket } = useMarket();
-  const tokenBalances = useOpenOrderAccountStore(
-    (state) => state.tokenBalances
-  );
+  const loadProgramAndMarket = async () => {
+    try {
+      setLoading(true);
+      if (!connection) throw new Error("Connection not found");
+      if (!currentWallet) throw new Error("Wallet not connected");
+      if (!selectedMarketPda) throw new Error("Market not selected");
+      setProgram(connection, currentWallet);
+      await loadData();
+    } catch (err: any) {
+      console.log(err);
+      toast.error(err.message ?? "Something went wrong , check console ");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeMarket = (marketPda: string) => {
+    const params = new URLSearchParams();
+    // if invalid market set to default
+    const newMarket =
+      MARKETS.find((it) => it.marketPda === marketPda) || MARKETS[0];
+
+    setSelectedMarket(newMarket);
+    params.set("market", newMarket.marketPda);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (!selectedMarketPda) {
       changeMarket(MARKETS[0].marketPda);
+    } else {
+      loadProgramAndMarket();
     }
-  }, []);
+  }, [connection, currentWallet, selectedMarketPda]);
+
+  if (loading) {
+    return <Layout>Loading...</Layout>;
+  }
 
   return (
     <Layout>
@@ -44,10 +85,9 @@ const TradePage = () => {
                 popover: "style-card shadow-lg",
               }}
               multiple={false}
-              selectedKeys={[currentMarket?.marketPda || MARKETS[0].marketPda]}
+              selectedKeys={[selectedMarket?.marketPda || MARKETS[0].marketPda]}
               onSelectionChange={(key) => {
                 const marketPubKey = Array.from(key)[0];
-
                 changeMarket(marketPubKey as string);
               }}
             >
@@ -67,28 +107,28 @@ const TradePage = () => {
             <Input
               as={"div"}
               label="Native coin Free"
-              value={tokenBalances?.nativeCoinFree}
+              value={tokenBalances?.nativeCoinFree ?? "0"}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
               label="Native coin total"
-              value={tokenBalances?.nativeCoinTotal}
+              value={tokenBalances?.nativeCoinTotal ?? "0"}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
               label="Native pc free"
-              value={tokenBalances?.nativePcFree}
+              value={tokenBalances?.nativePcFree ?? "0"}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />
             <Input
               as={"div"}
               label="Natice pc total"
-              value={tokenBalances?.nativePcTotal}
+              value={tokenBalances?.nativePcTotal ?? "0"}
               variant="faded"
               classNames={{ input: "text-lg", label: "text-default-500" }}
             />

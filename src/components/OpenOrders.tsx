@@ -1,5 +1,5 @@
-import useProgram from "@/hooks/useFermiProgram";
-import useOpenOrdersAccount from "@/hooks/useOpenOrdersAccount";
+
+import { useFermiStore } from "@/stores/fermiStore";
 
 import {
   Button,
@@ -11,18 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@nextui-org/react";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+
 
 const OpenOrders = () => {
-  const { program } = useProgram();
-  const connectedWallet = useAnchorWallet();
-  const searchParams = useSearchParams();
-  const marketPda = searchParams.get("market");
-  const { openOrders } = useOpenOrdersAccount();
-
+  const { openOrders } = useFermiStore();
   return (
     <div>
       <h6 className="font-heading font-medium">Open Orders</h6>
@@ -37,7 +30,7 @@ const OpenOrders = () => {
           <TableColumn className="text-center">Side</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
-        <TableBody emptyContent="No open order found!">
+        <TableBody>
           {openOrders?.map((order) => (
             <TableRow key={order.orderId}>
               <TableCell className="text-center">{order.price}</TableCell>

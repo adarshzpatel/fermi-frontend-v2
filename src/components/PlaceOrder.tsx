@@ -11,9 +11,9 @@ import * as anchor from "@project-serum/anchor";
 import toast from "react-hot-toast";
 import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-import useProgram from "@/hooks/useFermiProgram";
-import { MarketType } from "@/types";
-import useMarket from "@/hooks/useMarket";
+
+import { useFermiStore } from "@/stores/fermiStore";
+
 
 type OrderParams = {
   limitPrice: anchor.BN;
@@ -27,8 +27,7 @@ const PlaceOrder = () => {
   const [quantity, setQuantity] = useState(0);
   const [processing, setProcessing] = useState(false);
   const connectedWallet = useAnchorWallet();
-  const { program } = useProgram();
-  const { currentMarket } = useMarket();
+  const {program,selectedMarket,loadData} = useFermiStore()
 
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,20 +48,20 @@ const PlaceOrder = () => {
         throw new Error("Program not initialized");
         return;
       }
-      if (!currentMarket) {
+      if (!selectedMarket) {
         toast.error("Market not selected");
         throw new Error("Market not selected");
         return;
       }
 
       let tx;
-      console.log(currentMarket);
+      console.log(selectedMarket);
       if (selectedMode === "buy") {
         tx = await createBuyOrderIx({
           authority: connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey(currentMarket?.coinMint),
-          pcMint: new anchor.web3.PublicKey(currentMarket?.pcMint),
-          marketPda: new anchor.web3.PublicKey(currentMarket?.marketPda),
+          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
+          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
           price: price.toString(),
           qty: quantity.toString(),
           program,
@@ -73,10 +72,10 @@ const PlaceOrder = () => {
       } else {
         tx = await createSellOrderIx({
           authority: connectedWallet?.publicKey,
-          coinMint: new anchor.web3.PublicKey(currentMarket?.coinMint),
-          pcMint: new anchor.web3.PublicKey(currentMarket?.pcMint),
+          coinMint: new anchor.web3.PublicKey(selectedMarket?.coinMint),
+          pcMint: new anchor.web3.PublicKey(selectedMarket?.pcMint),
           price: price.toString(),
-          marketPda: new anchor.web3.PublicKey(currentMarket?.marketPda),
+          marketPda: new anchor.web3.PublicKey(selectedMarket?.marketPda),
           qty: quantity.toString(),
           program,
         });
@@ -88,6 +87,7 @@ const PlaceOrder = () => {
       console.log("Error in handlePlaceOrder:", err);
       toast.error(err?.message);
     } finally {
+      await loadData()
       setProcessing(false);
     }
   };
@@ -139,6 +139,7 @@ const PlaceOrder = () => {
           onChange={(e) => setPrice(e.target.valueAsNumber)}
           value={price.toString()}
           required
+          disabled={processing}
         />
         <Input
           type="number"
@@ -155,11 +156,13 @@ const PlaceOrder = () => {
           value={quantity.toString()}
           onChange={(e) => setQuantity(e.target.valueAsNumber)}
           required
+          disabled={processing}
         />
         <div className="pt-2">
           <Button
             type="submit"
             fullWidth
+            isLoading={processing}
             color={selectedMode === "buy" ? "primary" : "danger"}
           >
             Place Order

@@ -52,19 +52,7 @@ const Providers = ({ children }: ProviderProps) => {
   }, []);
 
   if (!isMounted) {
-    return (
-      <motion.div
-        layout
-        animate={{ opacity: [0.5, 1] }}
-        transition={{
-          opacity: { ease: "linear" },
-          layout: { duration: 0.5 },
-        }}
-        className="h-screen text-default-500 bg-gradient-to-b from-background to-default-50 flex  justify-center gap-4 w-screen"
-      >
-        <Spinner size="lg" label="Loading..." color="current" />
-      </motion.div>
-    );
+    return <div className="w-screen h-screen grid place-items-center"><Spinner size="lg"/></div>;
   }
   return (
     <SolanaWalletProviders>
