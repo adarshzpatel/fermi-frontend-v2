@@ -7,20 +7,17 @@ import {
   DropdownTrigger,
 } from "@nextui-org/react";
 import { useWalletMultiButton } from "@solana/wallet-adapter-base-ui";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletModal, useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TbArrowsExchange2, TbCopy, TbLogout } from "react-icons/tb";
 
 const CustomWalletConnectButton = () => {
-  const {solBalance} = useSolBalance();
+  const { disconnect } = useWallet();
+  const { solBalance } = useSolBalance();
   const { setVisible: setModalVisible } = useWalletModal();
-  const {
-    buttonState,
-    onConnect,
-    onDisconnect,
-    publicKey,
-
-  } = useWalletMultiButton({
+  const { buttonState, onConnect, publicKey } = useWalletMultiButton({
     onSelectWallet() {
       setModalVisible(true);
     },
@@ -47,10 +44,16 @@ const CustomWalletConnectButton = () => {
     };
   }, []);
 
+  const handleDisconnect = useCallback(() => {
+    disconnect().catch(() => {
+      // Silently catch because any errors are caught by the context `onError` handler
+    });
+  }, [disconnect]);
+
   const content = useMemo(() => {
     if (publicKey) {
       const base58 = publicKey.toBase58();
-      return base58.slice(0, 4) + "..." + base58.slice(-4) 
+      return base58.slice(0, 4) + "..." + base58.slice(-4);
     } else if (buttonState === "connecting") {
       return "Connecting...";
     } else if (buttonState === "has-wallet") {
@@ -61,76 +64,78 @@ const CustomWalletConnectButton = () => {
   }, [buttonState, publicKey]);
   return (
     <>
-
-      {buttonState === "connected" ? (
-        <Dropdown
-          backdrop="blur"
-          showArrow
-          classNames={{
-            base: "py-1 px-1 border  style-card dark:to-black",
-            arrow: "bg-default-200",
-          }}
-        >
+      <Dropdown
+        showArrow
+        classNames={{
+          base: "py-1 px-1 border  style-card dark:to-black",
+          arrow: "bg-default-200",
+        }}
+      >
+        {buttonState === "connected" ? (
           <DropdownTrigger>
-            <Button  className="style-card" radius="full" > <span className="font-medium hidden sm:block">{solBalance && ((solBalance/1000000000).toFixed(4) + " SOL | ")} </span>{content}</Button>
+            <Button className="style-card" radius="full">
+              {" "}
+              <span className="font-medium hidden sm:block">
+                {solBalance && (solBalance / 1000000000).toFixed(4) + " SOL | "}{" "}
+              </span>
+              {content}
+            </Button>
           </DropdownTrigger>
-          <DropdownMenu
-            variant="faded"
-            aria-label="Wallet dropdown with options to change wallet and disconnect"
+        ) : (
+          <Button
+            onClick={() => {
+              console.log(buttonState);
+              setModalVisible(true);
+              switch (buttonState) {
+                case "no-wallet":
+                  setModalVisible(true);
+                  break;
+                case "has-wallet":
+                  if (onConnect) {
+                    onConnect();
+                  }
+                  break;
+              }
+            }}
+            aria-expanded={menuOpen}
+            radius="full"
           >
-            <DropdownItem
-              closeOnSelect={false}
-              startContent={<TbCopy className="h-5 w-5" />}
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  publicKey?.toBase58() ?? ""
-                );
-                setCopied(true);
-                setTimeout(() => setCopied(false), 400);
-              }}
-              key="copy_address"
-            >
-              {copied ? "Copied" : "Copy Address"}
-            </DropdownItem>
-            <DropdownItem
-              startContent={<TbArrowsExchange2 className="h-5 w-5" />}
-              onClick={() => setModalVisible(true)}
-              key="change_wallet"
-            >
-              Change wallet
-            </DropdownItem>
-            <DropdownItem
-              className="text-red-500"
-              startContent={<TbLogout className="h-5 w-5" />}
-              onClick={() => onDisconnect && onDisconnect()}
-              key="disconnect"
-            >
-              Disconnect
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-      ) : (
-        <Button
-          onClick={() => {
-            console.log(buttonState)
-            setModalVisible(true)
-            switch (buttonState) {
-              case "no-wallet":
-                setModalVisible(true);
-                break;
-              case "has-wallet":
-                if (onConnect) {
-                  onConnect();
-                }
-                break;
-            }
-          }}
-          aria-expanded={menuOpen}
-          radius="full"
+            {content}
+          </Button>
+        )}
+        <DropdownMenu
+          variant="faded"
+          aria-label="Wallet dropdown with options to change wallet and disconnect"
         >
-          {content}
-        </Button>
-      )}
+          <DropdownItem
+            closeOnSelect={false}
+            startContent={<TbCopy className="h-5 w-5" />}
+            onClick={async () => {
+              await navigator.clipboard.writeText(publicKey?.toBase58() ?? "");
+              setCopied(true);
+              setTimeout(() => setCopied(false), 400);
+            }}
+            key="copy_address"
+          >
+            {copied ? "Copied" : "Copy Address"}
+          </DropdownItem>
+          <DropdownItem
+            startContent={<TbArrowsExchange2 className="h-5 w-5" />}
+            onClick={() => setModalVisible(true)}
+            key="change_wallet"
+          >
+            Change wallet
+          </DropdownItem>
+          <DropdownItem
+            className="text-red-500"
+            startContent={<TbLogout className="h-5 w-5" />}
+            onClick={() => handleDisconnect()}
+            key="disconnect"
+          >
+            Disconnect
+          </DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
     </>
   );
 };
