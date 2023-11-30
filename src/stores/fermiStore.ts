@@ -22,6 +22,7 @@ type FermiStoreState = {
   bids: Order[] | null;
   asks: Order[] | null;
   program: Program<FermiDex> | null;
+  openOrdersAccount: PublicKey | null;
 };
 
 type FermiStoreActions = {
@@ -43,6 +44,7 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
     eventQ: [],
     openOrders: [],
     tokenBalances: null,
+    openOrdersAccount: null,
     setProgram: (connection: Connection, connectedWallet: AnchorWallet) => {
       const provider = getProvider(connection, connectedWallet);
       const program = new Program(IDL, FERMI_PROGRAM_ID, provider);
@@ -135,7 +137,9 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
           openOrdersPda
         );
 
+
         set({
+          openOrdersAccount:openOrdersPda,
           tokenBalances: {
             nativeCoinFree: openOrdersResponse.nativeCoinFree.toString(),
             nativeCoinTotal: openOrdersResponse.nativeCoinTotal.toString(),
@@ -181,9 +185,9 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         );
 
         const eventQueueRes = await program.account.eventQueue.fetch(eventQPda);
-        console.log("eventQueue", eventQueueRes);
+          // console.log(eventQueueRes.buf)
+        const parsedEventQueue = parseEventQ(eventQueueRes.buf);
 
-        const parsedEventQueue = parseEventQ(eventQueueRes);
         set({ eventQ: parsedEventQueue });
       } catch (err) {
         console.log(err);

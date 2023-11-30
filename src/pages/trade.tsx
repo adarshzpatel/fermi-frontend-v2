@@ -1,13 +1,22 @@
 import Chart from "@/components/Chart";
 import Layout from "@/components/Layout";
+import MarketSelector from "@/components/MarketSelector";
 
-import OpenOrders from "@/components/OpenOrders";
+import OpenOrders from "@/components/OpenOrdersTable";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
+import TokenBalancesTable from "@/components/TokenBalancesTable";
 import { MARKETS } from "@/solana/config";
 import { useFermiStore } from "@/stores/fermiStore";
 
-import { Input, Select, SelectItem } from "@nextui-org/react";
+import {
+  Input,
+  Select,
+  SelectItem,
+  Spinner,
+  Tab,
+  Tabs,
+} from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,13 +27,8 @@ const TradePage = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedMarketPda = searchParams.get("market");
-  const {
-    setProgram,
-    tokenBalances,
-    setSelectedMarket,
-    selectedMarket,
-    loadData,
-  } = useFermiStore();
+  const { setProgram, setSelectedMarket, selectedMarket, loadData } =
+    useFermiStore();
   const { connection } = useConnection();
   const currentWallet = useAnchorWallet();
   const [loading, setLoading] = useState(false);
@@ -59,94 +63,59 @@ const TradePage = () => {
   useEffect(() => {
     if (!selectedMarketPda) {
       changeMarket(MARKETS[0].marketPda);
+    } else if (!selectedMarket) {
+      changeMarket(selectedMarketPda);
     } else {
       loadProgramAndMarket();
     }
-  }, [connection, currentWallet, selectedMarketPda]);
+  }, [connection, currentWallet, selectedMarketPda, selectedMarket]);
 
   if (loading) {
-    return <Layout>Loading...</Layout>;
+    return (
+      <Layout>
+        <Spinner label="Loading..." size="lg" />
+      </Layout>
+    );
   }
 
   return (
     <Layout>
-      <div className="flex flex-col gap-4 ">
-        <div className="flex gap-4 ">
-          <div className="flex-[1]">
-            <Select
-              label="Select Market"
-              placeholder="Select Market"
-              variant="faded"
-              classNames={{
-                value: "text-lg font-medium",
-                label: "text-default-500",
-                trigger:
-                  "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",
-                popover: "style-card shadow-lg",
-              }}
-              multiple={false}
-              selectedKeys={[selectedMarket?.marketPda || MARKETS[0].marketPda]}
-              onSelectionChange={(key) => {
-                const marketPubKey = Array.from(key)[0];
-                changeMarket(marketPubKey as string);
-              }}
-            >
-              {MARKETS.map((m) => (
-                <SelectItem
-                  aria-label={`${m.coinName} / ${m.pcName}`}
-                  key={m.marketPda}
-                  value={m.marketPda}
-                  textValue={`${m.coinName} / ${m.pcName}`}
-                >
-                  {m.coinName} / {m.pcName}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-          <div className="flex-[4] flex gap-2">
-            <Input
-              as={"div"}
-              label="Native coin Free"
-              value={tokenBalances?.nativeCoinFree ?? "0"}
-              variant="faded"
-              classNames={{ input: "text-lg", label: "text-default-500" }}
-            />
-            <Input
-              as={"div"}
-              label="Native coin total"
-              value={tokenBalances?.nativeCoinTotal ?? "0"}
-              variant="faded"
-              classNames={{ input: "text-lg", label: "text-default-500" }}
-            />
-            <Input
-              as={"div"}
-              label="Native pc free"
-              value={tokenBalances?.nativePcFree ?? "0"}
-              variant="faded"
-              classNames={{ input: "text-lg", label: "text-default-500" }}
-            />
-            <Input
-              as={"div"}
-              label="Natice pc total"
-              value={tokenBalances?.nativePcTotal ?? "0"}
-              variant="faded"
-              classNames={{ input: "text-lg", label: "text-default-500" }}
-            />
-          </div>
-        </div>
-        <div className="flex  gap-4">
+      <div className="flex flex-col  ">
+        <div className="flex  gap-4 p-4">
           <div className="flex-[3] gap-4 flex flex-col">
             <div className="flex gap-4">
-              <PlaceOrder />
+              <div className="space-y-4">
+                <MarketSelector
+                  onSelectionChange={(key) => {
+                    const marketPubKey = Array.from(key)[0];
+                    changeMarket(marketPubKey as string);
+                  }}
+                  selectedKeys={[
+                    selectedMarket?.marketPda || MARKETS[0].marketPda,
+                  ]}
+                />
+                <PlaceOrder />
+              </div>
               <div className=" flex-[2] style-card p-4">
                 <Chart />
               </div>
             </div>
-            <div className="style-card p-4">
-              <OpenOrders />
+            <div className="style-card ">
+              <Tabs
+                variant="underlined"
+                classNames={{ cursor: "bg-default-500", panel: "p-4 pt-0" }}
+                className="font-heading font-medium"
+              >
+                <Tab title="OPEN ORDERS" key="open-orders">
+                  <OpenOrders />
+                </Tab>
+                <Tab title="BALANCES" key="balances">
+                  <TokenBalancesTable />
+                </Tab>
+              </Tabs>
             </div>
           </div>
-          <div className="flex-[1] style-card p-4">
+          <div className="flex-[1] style-card">
             <Orderbook />
           </div>
         </div>

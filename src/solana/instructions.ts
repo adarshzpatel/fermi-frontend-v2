@@ -20,6 +20,120 @@ export type PlaceOrderIxParams = {
   program: anchor.Program<FermiDex>;
 };
 
+export type CancelOrderParams = {
+  program: anchor.Program<FermiDex>;
+  authority: PublicKey;
+  orderId: string;
+  marketPda: PublicKey;
+};
+
+export async function cancelAskIx({
+  program,
+  authority,
+  orderId,
+  marketPda,
+}: CancelOrderParams) {
+  try {
+    if (Number(orderId) === 0) {
+      console.log("Invalid order id. Aborting ...");
+      return;
+    }
+
+    const [bidsPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("bids", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+    const [asksPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("asks", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+
+    const [openOrdersPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from("open-orders", "utf-8"),
+        new anchor.web3.PublicKey(marketPda).toBuffer(),
+        authority.toBuffer(),
+      ],
+      new anchor.web3.PublicKey(program.programId)
+    );
+
+    const [eventQPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("event-q", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+
+    const cancelIx = await program.methods
+      .cancelAsk(new anchor.BN(orderId), authority)
+      .accounts({
+        openOrders: openOrdersPda,
+        market: marketPda,
+        bids: bidsPda,
+        asks: asksPda,
+        eventQ: eventQPda,
+        authority: authority, // Assuming this is the expected owner
+      })
+      .rpc();
+    console.log(`Cancelled order ${orderId} `, { cancelIx });
+    return cancelIx;
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+export async function cancelBidIx({
+  program,
+  authority,
+  orderId,
+  marketPda,
+}: CancelOrderParams) {
+  try {
+    if (Number(orderId) === 0) {
+      console.log("Invalid order id. Aborting ...");
+      return;
+    }
+
+    const [bidsPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("bids", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+    const [asksPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("asks", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+
+    const [openOrdersPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from("open-orders", "utf-8"),
+        new anchor.web3.PublicKey(marketPda).toBuffer(),
+        authority.toBuffer(),
+      ],
+      new anchor.web3.PublicKey(program.programId)
+    );
+
+    const [eventQPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("event-q", "utf-8"), marketPda.toBuffer()],
+      program.programId
+    );
+
+    const cancelIx = await program.methods
+      .cancelBid(new anchor.BN(orderId), authority)
+      .accounts({
+        openOrders: openOrdersPda,
+        market: marketPda,
+        bids: bidsPda,
+        asks: asksPda,
+        eventQ: eventQPda,
+        authority: authority, // Assuming this is the expected owner
+      })
+      .rpc();
+
+    console.log(`Cancelled order ${orderId} `, { cancelIx });
+    return cancelIx;
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 export const createBuyOrderIx = async ({
   price,
   qty,
@@ -73,8 +187,8 @@ export const createBuyOrderIx = async ({
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
 
-    const _price = new anchor.BN(price).mul(new anchor.BN("1000000"));
-    const _qty = new anchor.BN(qty).mul(new anchor.BN("1000000000"));
+    const _price = new anchor.BN(price);
+    const _qty = new anchor.BN(qty);
 
     const tx = await program.methods
       .newOrder({ bid: {} }, _price, _qty, new anchor.BN(_price).mul(_qty), {
@@ -156,8 +270,8 @@ export const createSellOrderIx = async ({
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
 
-    const _price = new anchor.BN(price).mul(new anchor.BN("1000000"));
-    const _qty = new anchor.BN(qty).mul(new anchor.BN("1000000000"));
+    const _price = new anchor.BN(price);
+    const _qty = new anchor.BN(qty);
 
     const tx = await program.methods
       .newOrder({ ask: {} }, _price, _qty, new anchor.BN(_price).mul(_qty), {

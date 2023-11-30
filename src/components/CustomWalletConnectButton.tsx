@@ -66,23 +66,28 @@ const CustomWalletConnectButton = () => {
     <>
       <Dropdown
         showArrow
+        radius="none"
         classNames={{
+
           base: "py-1 px-1 border  style-card dark:to-black",
           arrow: "bg-default-200",
         }}
       >
         {buttonState === "connected" ? (
-          <DropdownTrigger>
-            <Button className="style-card" radius="full">
-              {" "}
-              <span className="font-medium hidden sm:block">
-                {solBalance && (solBalance / 1000000000).toFixed(4) + " SOL | "}{" "}
-              </span>
-              {content}
-            </Button>
+          <DropdownTrigger className="hover:bg-default-50 duration-200 ease-out p-4 border-l border-default-300 cursor-pointer">
+            <div>
+              <p className="text-default-400 text-xs">Connected Wallet</p>
+              <div className="flex gap-2 items-center">
+                <p className="font-medium hidden sm:block">
+                  {solBalance && (solBalance / 1000000000).toFixed(4) + " SOL "}
+                </p>
+                <div className="h-4 w-[1px] bg-default-400"></div>
+                <p className="">{content}</p>
+              </div>
+            </div>
           </DropdownTrigger>
         ) : (
-          <Button
+          <button
             onClick={() => {
               console.log(buttonState);
               setModalVisible(true);
@@ -98,13 +103,15 @@ const CustomWalletConnectButton = () => {
               }
             }}
             aria-expanded={menuOpen}
-            radius="full"
+
+            className="hover:bg-default-50 h-full duration-200 ease-out p-4 border-l border-default-300 cursor-pointer"
           >
             {content}
-          </Button>
+          </button>
         )}
         <DropdownMenu
           variant="faded"
+
           aria-label="Wallet dropdown with options to change wallet and disconnect"
         >
           <DropdownItem

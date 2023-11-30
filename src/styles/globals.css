@@ -6,9 +6,9 @@
 
 @layer components{
   .style-card{
-    @apply bg-gradient-to-br from-default-50 to-black border border-default rounded-md; 
+    @apply bg-gradient-to-br from-default-50 to-black border border-default ; 
   }
   .gradient-light{
-    @apply bg-gradient-to-br from-default-100/25 to-black  rounded-md; 
+    @apply bg-gradient-to-br from-default-100/25 to-black; 
   }
 }

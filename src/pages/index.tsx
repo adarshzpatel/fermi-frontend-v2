@@ -1,6 +1,6 @@
 import Chart from "@/components/Chart";
 import Layout from "@/components/Layout";
-import OpenOrders from "@/components/OpenOrders";
+import OpenOrders from "@/components/OpenOrdersTable";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
 import { MARKETS } from "@/solana/config";

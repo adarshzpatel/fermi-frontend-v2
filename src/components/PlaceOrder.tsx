@@ -36,22 +36,22 @@ const PlaceOrder = () => {
       if (price <= 0 || quantity <= 0) {
         toast.error("Price and Quantity must be greater than 0");
         throw new Error("Price and Quantity must be greater than 0");
-        return;
+
       }
       if (!connectedWallet?.publicKey) {
         toast.error("Please connect your wallet");
         throw new Error("Please connect your wallet");
-        return;
+
       }
       if (!program) {
         toast.error("Program not initialized");
         throw new Error("Program not initialized");
-        return;
+
       }
       if (!selectedMarket) {
         toast.error("Market not selected");
         throw new Error("Market not selected");
-        return;
+
       }
 
       let tx;
@@ -87,19 +87,19 @@ const PlaceOrder = () => {
       console.log("Error in handlePlaceOrder:", err);
       toast.error(err?.message);
     } finally {
-      await loadData()
       setProcessing(false);
+      await loadData()
     }
   };
 
   return (
-    <div className="flex-[1] style-card shadow-sm rounded-md  p-4">
+    <div className="flex-[1] style-card shadow-sm   p-4">
       <h6 className="font-heading font-medium">BONK/USDC</h6>
       <Tabs
         onSelectionChange={(key) => setSelectedMode(key.toString())}
         color={selectedMode === "buy" ? "primary" : "danger"}
-        radius="md"
-        className="mt-2 font-medium  "
+        radius="none"
+        className="mt-2 font-medium"
         fullWidth
       >
         <Tab title="Buy" key="buy" />
@@ -113,9 +113,10 @@ const PlaceOrder = () => {
           disabledKeys={["market"]}
           classNames={{
             trigger:
-              "bg-default-50 border-1 border-default-200 hover:border-default-400 active:border-default-400",
-            popover: "style-card shadow-lg",
+              "bg-default-50  border-1 border-default-200 hover:border-default-400 active:border-default-400",
+            popover: "style-card rounded-none shadow-lg",
           }}
+          radius="none"
         >
           <SelectItem key="limit" textValue="Limit">
             Limit
@@ -139,6 +140,7 @@ const PlaceOrder = () => {
           onChange={(e) => setPrice(e.target.valueAsNumber)}
           value={price.toString()}
           required
+          radius="none"
           disabled={processing}
         />
         <Input
@@ -154,6 +156,7 @@ const PlaceOrder = () => {
           placeholder="0.00"
           label="Quantity"
           value={quantity.toString()}
+          radius="none"
           onChange={(e) => setQuantity(e.target.valueAsNumber)}
           required
           disabled={processing}
@@ -162,6 +165,7 @@ const PlaceOrder = () => {
           <Button
             type="submit"
             fullWidth
+            radius="none"
             isLoading={processing}
             color={selectedMode === "buy" ? "primary" : "danger"}
           >

@@ -16,7 +16,7 @@ import {
 import { FERMI_PROGRAM_ID } from "@/solana/config";
 
 import * as spl from "@solana/spl-token";
-import { EventQueueItem } from "@/types";
+import { EventQueueItem, Order } from "@/types";
 import { FermiDex, IDL } from "./idl";
 
 export const priceFromOrderId = (orderId: BN, decimals: number) => {
@@ -31,8 +31,10 @@ export const timestampFromOrderId = (orderId: BN) => {
 
 export function parseEventQ(eventQ: any) {
   const events: EventQueueItem[] = [];
+
   for (let i = 0; i < (eventQ as any[]).length; i++) {
     const e = eventQ[i];
+
     if (e.orderId.toString() === "0") continue;
     const event: EventQueueItem = {} as EventQueueItem;
     event["idx"] = i;
@@ -44,7 +46,7 @@ export function parseEventQ(eventQ: any) {
     event["finalised"] = e.finalised;
     event["nativeQtyReleased"] = e.nativeQtyReleased.toString();
     event["nativeQtyPaid"] = e.nativeQtyPaid.toString();
-    event["timestamp"] = e.timestamp.toString()
+    event["timestamp"] = e.timestamp.toString();
     events.push(event);
   }
   return events;
@@ -251,4 +253,63 @@ export const airdropCustomToken = async (
     console.log("Something went wrong while airdropping coin token.");
     console.log(err);
   }
+};
+
+type OrderMatch = {
+  orderIdMatched: EventQueueItem;
+  orderIdSecondMatched: EventQueueItem ;
+};
+
+type EventQueue = EventQueueItem[];
+
+export const findMatchingEvents = (
+  orderIds: string[],
+  events: EventQueue
+): Map<string, OrderMatch> => {
+  const orderIdMap = new Map<string, EventQueueItem>();
+  const orderIdSecondMap = new Map<string, EventQueueItem>();
+
+  // Pre-process events into separate maps
+  for (const e of events) {
+    
+    if (
+      e.orderId !== "0" &&
+      e.nativeQtyPaid !== "0"
+      ) {
+
+      if (!orderIdMap.has(e.orderId)) {
+        orderIdMap.set(e.orderId, e);
+      }
+      if (!orderIdSecondMap.has(e.orderIdSecond) && e.orderIdSecond !== "0") {
+        orderIdSecondMap.set(e.orderIdSecond, e);
+      }
+    }
+  }
+
+  const matchedEvents = new Map<string, OrderMatch>();
+  for (const orderId of orderIds) {
+    if (orderId === "0") continue;
+    // console.log("matching events for ", orderId)
+    const orderIdMatched = orderIdMap.get(orderId);
+    // console.log("Found order id matching with event idx",orderIdMatched?.idx)
+  if (!orderIdMatched) continue;
+
+    let orderIdSecondMatched;
+
+    if (orderIdMatched?.orderIdSecond === "0") {
+      // console.log('hey could not find order id second ')
+      orderIdSecondMatched = orderIdSecondMap.get(orderId);
+    } else {
+      // console.log("Found order id second")
+      orderIdSecondMatched = orderIdMap.get(orderIdMatched?.orderIdSecond);
+    }
+    if (orderIdSecondMatched) {
+      matchedEvents.set(orderId, {
+        orderIdMatched: orderIdMatched,
+        orderIdSecondMatched: orderIdSecondMatched,
+      });
+    }
+  }
+  // console.log({matchedEvents,orderIdMap,orderIdSecondMap})
+  return matchedEvents;
 };

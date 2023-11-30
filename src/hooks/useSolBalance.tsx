@@ -7,13 +7,18 @@ const useSolBalance = () => {
   const connectedWallet = useAnchorWallet();
 
   const getSolBalance = async () => {
-    if (!connectedWallet) {
-      setSolBalance(null);
-      return 
+    try{
 
-    };
-    const bal = await connection.getBalance(connectedWallet?.publicKey);
-    setSolBalance(bal);
+      if(!connectedWallet) {
+        setSolBalance(null);
+        return
+      };
+      const bal = await connection.getBalance(connectedWallet?.publicKey);
+      setSolBalance(bal);
+      
+    } catch(err){
+      console.log("Err in getSolBalance",err);
+    }
   };
   useEffect(() => {
     getSolBalance();
