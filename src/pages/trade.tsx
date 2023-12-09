@@ -9,14 +9,7 @@ import TokenBalancesTable from "@/components/TokenBalancesTable";
 import { MARKETS } from "@/solana/config";
 import { useFermiStore } from "@/stores/fermiStore";
 
-import {
-  Input,
-  Select,
-  SelectItem,
-  Spinner,
-  Tab,
-  Tabs,
-} from "@nextui-org/react";
+import { Spinner, Tab, Tabs } from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -27,7 +20,7 @@ const TradePage = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedMarketPda = searchParams.get("market");
-  const { setProgram, setSelectedMarket, selectedMarket, loadData } =
+  const { setProgram, setSelectedMarket, selectedMarket, loadData, reset } =
     useFermiStore();
   const { connection } = useConnection();
   const currentWallet = useAnchorWallet();
@@ -61,6 +54,7 @@ const TradePage = () => {
   };
 
   useEffect(() => {
+    reset();
     if (!selectedMarketPda) {
       changeMarket(MARKETS[0].marketPda);
     } else if (!selectedMarket) {

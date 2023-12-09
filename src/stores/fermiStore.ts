@@ -32,7 +32,8 @@ type FermiStoreActions = {
   fetchBids: () => Promise<void>;
   fetchAsks: () => Promise<void>;
   setProgram: (connection: Connection, wallet: AnchorWallet) => void;
-  loadData:() => void
+  loadData: () => void;
+  reset:() => void;
 };
 
 export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
@@ -50,7 +51,10 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
       const program = new Program(IDL, FERMI_PROGRAM_ID, provider);
       set({ program });
     },
-    setSelectedMarket: (market: MarketType) => set({ selectedMarket: market }),
+    setSelectedMarket: (market: MarketType) => {
+      set({ selectedMarket: market });
+      get().loadData();
+    },
     fetchAsks: async () => {
       try {
         const { program, selectedMarket } = get();
@@ -137,9 +141,8 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
           openOrdersPda
         );
 
-
         set({
-          openOrdersAccount:openOrdersPda,
+          openOrdersAccount: openOrdersPda,
           tokenBalances: {
             nativeCoinFree: openOrdersResponse.nativeCoinFree.toString(),
             nativeCoinTotal: openOrdersResponse.nativeCoinTotal.toString(),
@@ -185,7 +188,7 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         );
 
         const eventQueueRes = await program.account.eventQueue.fetch(eventQPda);
-          // console.log(eventQueueRes.buf)
+        // console.log(eventQueueRes.buf)
         const parsedEventQueue = parseEventQ(eventQueueRes.buf);
 
         set({ eventQ: parsedEventQueue });
@@ -193,12 +196,22 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         console.log(err);
       }
     },
-    loadData:async()=>{
-      const {fetchAsks,fetchBids,fetchEventQ,fetchOpenOrders} = get()
-      await fetchAsks()
-      await fetchBids()
-      await fetchEventQ()
-      await fetchOpenOrders()
-    }
+    loadData: async () => {
+      const { fetchAsks, fetchBids, fetchEventQ, fetchOpenOrders } = get();
+      await fetchAsks();
+      await fetchBids();
+      await fetchEventQ();
+      await fetchOpenOrders();
+    },
+    reset: async () => {
+      set({
+        asks: [],
+        bids: [],
+        eventQ: [],
+        openOrders: [],
+        tokenBalances: null,
+        openOrdersAccount: null,
+      });
+    },
   })
 );

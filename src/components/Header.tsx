@@ -1,4 +1,5 @@
 import {
+  Link,
   Navbar,
   NavbarBrand,
   NavbarContent,
@@ -31,7 +32,7 @@ const Header = () => {
         <h6 className="font-semibold  p-4  flex-1 text-2xl m-auto font-heading">
           Fermi
         </h6>
-      
+          <Link href="/airdrop">Airdrop</Link>
         <OpenOrdersAccountDropdown />
         <div>
           <CustomWalletConnectButton />
