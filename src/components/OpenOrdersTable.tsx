@@ -1,10 +1,10 @@
-import { cancelAskIx, cancelBidIx } from "@/solana/instructions";
-import { findMatchingEvents } from "@/solana/utils";
+import { cancelAskIx, cancelBidIx, finaliseAskIx, finaliseBidIx } from "@/solana/instructions";
+import { OrderMatch, OrderMatchMap, findMatchingEvents } from "@/solana/utils";
 import { useFermiStore } from "@/stores/fermiStore";
 import { Button, Chip } from "@nextui-org/react";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import toast from "react-hot-toast";
 
@@ -12,6 +12,18 @@ const OpenOrders = () => {
   const connectedWallet = useAnchorWallet();
   const { openOrders, selectedMarket, program, loadData, eventQ } =
     useFermiStore();
+
+  const finalisableEvents = useMemo(() => {
+    if (eventQ && openOrders) {
+      const matchedOrders = findMatchingEvents(
+        openOrders.map((it) => it.orderId),
+        eventQ
+      );
+      console.log("matchedOrders : ", matchedOrders);
+      return matchedOrders;
+    }
+    return [] as unknown as OrderMatchMap;
+  }, [eventQ, openOrders]);
 
   const handleCancelOrder = useCallback(
     async (orderId: string, side: string) => {
@@ -50,14 +62,49 @@ const OpenOrders = () => {
     []
   );
 
-  useEffect(() => {
-    if (eventQ && openOrders) {
-      findMatchingEvents(
-        openOrders.map((it) => it.orderId),
-        eventQ
-      );
+  const handleFinalise = async (orderId: string) => {
+    try {
+      if(!connectedWallet) throw new Error("Please connect wallet")
+      if(!selectedMarket) throw new Error("Please select market")
+      if(!program) throw new Error("No program found")
+
+
+      const {event1,event2} = finalisableEvents[orderId]
+
+
+      const counterparty = event2.owner
+    
+      const finaliseAsk = await finaliseAskIx({
+        eventSlot1:event1.slot,eventSlot2:event2.slot,
+        authority:connectedWallet.publicKey,
+        program,
+        marketPda: new PublicKey(selectedMarket?.marketPda),
+        coinMint: new PublicKey(selectedMarket?.coinMint),
+        pcMint: new PublicKey(selectedMarket?.pcMint),
+        counterparty
+      })
+
+      // console.log({finaliseAsk})
+      console.log(event1.owner.toString())
+      console.log(event2.owner.toString())
+
+      // const finaliseBid = await finaliseBidIx({
+      //   eventSlot1:event1.slot,eventSlot2:event2.slot,
+      //   authority:connectedWallet.publicKey,
+      //   program,
+      //   marketPda: new PublicKey(selectedMarket?.marketPda),
+      //   coinMint: new PublicKey(selectedMarket?.coinMint),
+      //   pcMint: new PublicKey(selectedMarket?.pcMint),
+      //   counterparty
+      // })
+
+
+      
+    } catch (err: any) {
+      console.log("Error in finalise ask : ", err);
+      toast.error(err.message ?? "Something went wrong , check console ");
     }
-  }, [eventQ, openOrders]);
+  };
 
   return (
     <div>
@@ -73,10 +120,10 @@ const OpenOrders = () => {
         </thead>
         <tbody className="text-sm ">
           {/* Coin */}
-          {openOrders?.map((order) => (
+          {openOrders?.map((order,i) => (
             <tr
-            key={"oo-" + order.orderId}
-            className=" border-t-1 border-default-100"
+              key={"oo-"+ i+ order.orderId}
+              className=" border-t-1 border-default-100"
             >
               <td className="text-left  p-3">{order.orderId}</td>
               <td className="text-center p-3">{order.price}</td>
@@ -85,20 +132,27 @@ const OpenOrders = () => {
                 <Chip
                   color={order.side === "Ask" ? "danger" : "success"}
                   variant="flat"
-                  >
+                >
                   {order.side}
                 </Chip>
               </td>
               <td className="flex items-center p-3 justify-end gap-4">
-                <Button size="sm" radius="none" variant="ghost">
-                  Finalise
-                </Button>
+                {Object.keys(finalisableEvents)?.includes(order.orderId) && (
+                  <Button
+                    onClick={() => handleFinalise(order.orderId)}
+                    size="sm"
+                    radius="none"
+                    variant="ghost"
+                  >
+                    Finalise
+                  </Button>
+                )}
                 <Button
                   onClick={() => handleCancelOrder(order.orderId, order.side)}
                   size="sm"
                   radius="none"
                   variant="ghost"
-                  >
+                >
                   Cancel
                 </Button>
               </td>
@@ -106,7 +160,11 @@ const OpenOrders = () => {
           ))}
         </tbody>
       </table>
-      {openOrders?.length === 0 && (<span className="p-4 justify-center flex w-full border border-t-0 border-default-100">No open orders found</span>)}
+      {openOrders?.length === 0 && (
+        <span className="p-4 justify-center flex w-full border border-t-0 border-default-100">
+          No open orders found
+        </span>
+      )}
     </div>
   );
 };

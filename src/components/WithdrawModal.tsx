@@ -46,13 +46,13 @@ const WithdrawModal = ({ isOpen, closeModal, tokenType,onOpenChange }: Props) =>
   const getWalletBalance = async () => {
     try {
       if (!connectedWallet || !tokenMintAddress || !connection) return 0;
-      const balance = await fetchTokenBalance(
+      let balance = await fetchTokenBalance(
         connectedWallet?.publicKey,
         new PublicKey(tokenMintAddress),
         connection
       );
-
-      setWalletBalance(Number(balance));
+      
+      setWalletBalance(tokenType === 'pc' ? Number(balance)/10**6 : Number(balance)/10**9);
     } catch (err) {
       console.log("Error in WithdrawModal/getWalletBalance:", err);
     }

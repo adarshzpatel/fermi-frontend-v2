@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   Button,
   Input,
@@ -10,10 +10,8 @@ import {
 import * as anchor from "@project-serum/anchor";
 import toast from "react-hot-toast";
 import { createBuyOrderIx, createSellOrderIx } from "@/solana/instructions";
-import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useFermiStore } from "@/stores/fermiStore";
-
 
 type OrderParams = {
   limitPrice: anchor.BN;
@@ -53,9 +51,9 @@ const PlaceOrder = () => {
         throw new Error("Market not selected");
 
       }
-
       let tx;
       console.log(selectedMarket);
+      
       if (selectedMode === "buy") {
         tx = await createBuyOrderIx({
           authority: connectedWallet?.publicKey,
@@ -94,7 +92,7 @@ const PlaceOrder = () => {
 
   return (
     <div className="flex-[1] style-card shadow-sm   p-4">
-      <h6 className="font-heading font-medium">BONK/USDC</h6>
+      <h6 className="font-heading font-medium">{selectedMarket?.coinName}/{selectedMarket?.pcName}</h6>
       <Tabs
         onSelectionChange={(key) => setSelectedMode(key.toString())}
         color={selectedMode === "buy" ? "primary" : "danger"}

@@ -255,28 +255,35 @@ export const airdropCustomToken = async (
   }
 };
 
-type OrderMatch = {
-  orderIdMatched: EventQueueItem;
-  orderIdSecondMatched: EventQueueItem ;
+export type OrderMatch = {
+  event1: {
+    slot: number;
+    owner: PublicKey;
+  };
+  event2: {
+    slot: number;
+    owner: PublicKey;
+  };
 };
 
-type EventQueue = EventQueueItem[];
+export type OrderMatchMap = {
+  [key: string]: OrderMatch;
+};
 
 export const findMatchingEvents = (
   orderIds: string[],
-  events: EventQueue
-): Map<string, OrderMatch> => {
+  events: EventQueueItem[]
+) => {
   const orderIdMap = new Map<string, EventQueueItem>();
   const orderIdSecondMap = new Map<string, EventQueueItem>();
 
   // Pre-process events into separate maps
   for (const e of events) {
-    
     if (
+      e.nativeQtyReleased !== "0" &&
       e.orderId !== "0" &&
       e.nativeQtyPaid !== "0"
-      ) {
-
+    ) {
       if (!orderIdMap.has(e.orderId)) {
         orderIdMap.set(e.orderId, e);
       }
@@ -286,13 +293,13 @@ export const findMatchingEvents = (
     }
   }
 
-  const matchedEvents = new Map<string, OrderMatch>();
+  const matchedEvents: OrderMatchMap = {} as OrderMatchMap;
   for (const orderId of orderIds) {
     if (orderId === "0") continue;
     // console.log("matching events for ", orderId)
     const orderIdMatched = orderIdMap.get(orderId);
     // console.log("Found order id matching with event idx",orderIdMatched?.idx)
-  if (!orderIdMatched) continue;
+    if (!orderIdMatched) continue;
 
     let orderIdSecondMatched;
 
@@ -303,13 +310,32 @@ export const findMatchingEvents = (
       // console.log("Found order id second")
       orderIdSecondMatched = orderIdMap.get(orderIdMatched?.orderIdSecond);
     }
-    if (orderIdSecondMatched) {
-      matchedEvents.set(orderId, {
-        orderIdMatched: orderIdMatched,
-        orderIdSecondMatched: orderIdSecondMatched,
-      });
+    if (orderIdMatched && orderIdSecondMatched) {
+      if (orderIdMatched < orderIdSecondMatched) {
+        matchedEvents[orderId] = {
+          event1: {
+            slot: orderIdMatched.idx,
+            owner: new PublicKey(orderIdMatched.owner),
+          },
+          event2: {
+            slot: orderIdSecondMatched.idx,
+            owner: new PublicKey(orderIdSecondMatched.owner),
+          },
+        };
+      } else {
+        matchedEvents[orderId] = {
+          event1: {
+            slot: orderIdSecondMatched.idx,
+            owner: new PublicKey(orderIdSecondMatched.owner),
+          },
+          event2: {
+            slot: orderIdMatched.idx,
+            owner: new PublicKey(orderIdMatched.owner),
+          },
+        };
+      }
     }
   }
-  // console.log({matchedEvents,orderIdMap,orderIdSecondMap})
+
   return matchedEvents;
 };

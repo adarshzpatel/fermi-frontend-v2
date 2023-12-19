@@ -13,7 +13,7 @@ import {
 import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo, useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { motion } from "framer-motion";
+
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 type ProviderProps = {

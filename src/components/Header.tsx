@@ -1,38 +1,22 @@
 import {
   Link,
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
 } from "@nextui-org/react";
 import CustomWalletConnectButton from "./CustomWalletConnectButton";
-import { useFermiStore } from "@/stores/fermiStore";
-import OpenOrdersAccountDropdown from "./OpenOrdersAccountDropdown";
-import MarketSelector from "./MarketSelector";
-import { MARKETS } from "@/solana/config";
-import { usePathname, useRouter } from "next/navigation";
+import OpenOrdersAccountDropdown from "./OpenOrdersAccount";
 
 const Header = () => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { setSelectedMarket, selectedMarket } = useFermiStore();
-  const changeMarket = (marketPda: string) => {
-    const params = new URLSearchParams();
-    // if invalid market set to default
-    const newMarket =
-      MARKETS.find((it) => it.marketPda === marketPda) || MARKETS[0];
-
-    setSelectedMarket(newMarket);
-    params.set("market", newMarket.marketPda);
-    router.push(`${pathname}?${params.toString()}`);
-  };
   return (
     <header className="border-b-1 border-default-300 ">
       <nav className="flex ">
         <h6 className="font-semibold  p-4  flex-1 text-2xl m-auto font-heading">
           Fermi
         </h6>
-          <Link href="/airdrop">Airdrop</Link>
+        <div className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
+          <Link color="foreground" href="/airdrop">Airdrop</Link>
+        </div>
+        <div className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
+          <Link color="foreground" href="/trade">Trade</Link>
+        </div>
         <OpenOrdersAccountDropdown />
         <div>
           <CustomWalletConnectButton />

@@ -1,22 +1,22 @@
 import { MarketType } from "@/types";
 import { Keypair } from "@solana/web3.js";
 
-export const FERMI_PROGRAM_ID = "4jde1a6MyoiwLVqB6UH5mBJp3gbpk1wcth8TZJfnf1V9";
+export const FERMI_PROGRAM_ID = "2BM843fAN55fqsMGidaqNr1P4127YLcxvTM5W4B2gNpn";
 
 export const MARKETS: MarketType[] = [
   {
-    marketPda: "2hF3rMkVrhc5LMKPwrwjLC7wT4yb3hHWBuxDKCLwWW8y",
-    coinMint: "6aHLAL3HdHvf5AKe6V91ozTDhXa8ZCfrpiWXCiSQK15E",
-    pcMint: "HdCMLqqYfjTZQ8mQKFjegg49JHsibLkbRmTPzyZCfyFx",
+    marketPda: "5Qh64iKL6VbEByFYgVn2kupGn26K49c633wufUsKVkLV",
+    coinMint: "Bgd9zcXgVTAfKTrtgnSjspuRz5LXEfn5CGUZ83RmLMMz",
+    pcMint: "HUaSBG4fumCpQkna1k5RqAn9DuvXPG2jmwnLCznk9jXo",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,
     pcName: "USDC",
     coinName: "TONK",
   },
   {
-    marketPda: "41nBFyihNPc3T7RTjY6td8ateuAV1KmHQCgwZkRpyMBS",
-    coinMint: "AUdmvCuWTwoT9kviNUzvp3EZiKr528FDcgJvDnijDsZ3",
-    pcMint: "6EioKQEuzYAYWjgyCds9uyd7PzAC1XnPSAbZaeYH6knn",
+    marketPda: "DFv44oksLKaXKv8VpgYvuRf2QEdT9feKU7gwLMn1xfsK",
+    coinMint: "hAG8BV8zf5Q9rByShj8RBRefjrkC5tZPgAwLqJWNU5Z",
+    pcMint: "AfJmPcmHtU8AW2V7hSJxXo48sc7oLDhuunrFvxnmqBCz",
     pcName: "USDC",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,

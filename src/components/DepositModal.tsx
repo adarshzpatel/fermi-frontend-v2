@@ -52,7 +52,7 @@ const DepositModal = ({ isOpen, closeModal, tokenType,onOpenChange }: Props) => 
         connection
       );
 
-      setWalletBalance(Number(balance));
+      setWalletBalance(tokenType === 'pc' ? Number(balance)/10**6 : Number(balance)/10**9);
     } catch (err) {
       console.log("Error in DepositModal/getWalletBalance:", err);
     }

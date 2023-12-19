@@ -25,6 +25,7 @@ const CustomWalletConnectButton = () => {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLUListElement>(null);
+
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       const node = ref.current;
@@ -62,6 +63,7 @@ const CustomWalletConnectButton = () => {
       return "Select Wallet";
     }
   }, [buttonState, publicKey]);
+  
   return (
     <>
       <Dropdown

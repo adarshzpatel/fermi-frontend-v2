@@ -13,6 +13,7 @@ import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
 import { create } from "zustand";
+import { parse } from "path";
 
 type FermiStoreState = {
   eventQ: EventQueueType | null;
@@ -55,7 +56,7 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
       set({ selectedMarket: market });
       get().loadData();
     },
-    fetchAsks: async () => {
+    fetchBids: async () => {
       try {
         const { program, selectedMarket } = get();
         if (!program) throw new Error("Program not found");
@@ -87,7 +88,7 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         console.log(err);
       }
     },
-    fetchBids: async () => {
+    fetchAsks: async () => {
       try {
         const { program, selectedMarket } = get();
         if (!program) throw new Error("Program not found");
@@ -144,10 +145,10 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         set({
           openOrdersAccount: openOrdersPda,
           tokenBalances: {
-            nativeCoinFree: openOrdersResponse.nativeCoinFree.toString(),
-            nativeCoinTotal: openOrdersResponse.nativeCoinTotal.toString(),
-            nativePcFree: openOrdersResponse.nativePcFree.toString(),
-            nativePcTotal: openOrdersResponse.nativePcTotal.toString(),
+            nativeCoinFree:(openOrdersResponse.nativeCoinFree/selectedMarket.coinLotSize).toString(),
+            nativeCoinTotal: (openOrdersResponse.nativeCoinTotal/selectedMarket.coinLotSize).toString(),
+            nativePcFree: (openOrdersResponse.nativePcFree/selectedMarket.pcLotSize).toString(),
+            nativePcTotal: (openOrdersResponse.nativePcTotal/selectedMarket.pcLotSize).toString(),
           },
         });
         let orderIds = openOrdersResponse?.orders
@@ -188,9 +189,8 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         );
 
         const eventQueueRes = await program.account.eventQueue.fetch(eventQPda);
-        // console.log(eventQueueRes.buf)
         const parsedEventQueue = parseEventQ(eventQueueRes.buf);
-
+        console.log(parsedEventQueue) 
         set({ eventQ: parsedEventQueue });
       } catch (err) {
         console.log(err);

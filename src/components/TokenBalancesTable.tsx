@@ -11,7 +11,7 @@ const TokenBalancesTable = () => {
     onClose: closeDepositModal,
     onOpenChange:onDepositModalOpenChange
   } = useDisclosure({ id: "deposit-modal" });
-  const { isOpen: isWithdrawModalOpen,     onOpenChange:onWithdrawModalOpenChange,onOpen: openWithdrawModal ,onClose:closeWithdrawModal} =
+  const { isOpen: isWithdrawModalOpen, onOpenChange:onWithdrawModalOpenChange,onOpen: openWithdrawModal ,onClose:closeWithdrawModal} =
     useDisclosure({ id: "withdraw-modal" });
   const { tokenBalances, selectedMarket } = useFermiStore();
 
