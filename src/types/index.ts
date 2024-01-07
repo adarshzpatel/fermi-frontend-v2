@@ -1,4 +1,4 @@
-import { FermiDex } from "@/solana/idl"
+import { type FermiDex } from "@/solana/idl"
 import { AnchorProvider, Program,Provider } from "@project-serum/anchor"
 import { PublicKey } from "@solana/web3.js"
 import { Dispatch, SetStateAction } from "react"

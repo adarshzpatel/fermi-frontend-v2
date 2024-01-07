@@ -11,12 +11,12 @@ const Header = () => {
         <h6 className="font-semibold  p-4  flex-1 text-2xl m-auto font-heading">
           Fermi
         </h6>
-        <div className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
-          <Link color="foreground" href="/airdrop">Airdrop</Link>
-        </div>
-        <div className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
-          <Link color="foreground" href="/trade">Trade</Link>
-        </div>
+        <Link color="foreground" href="/airdrop" className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
+          Airdrop
+        </Link>
+        <Link color="foreground" href="/trade" className="p-4 flex hover:bg-default-100/50 cursor-pointer items-center justify-center border-l border-default-300">
+          Trade
+        </Link>
         <OpenOrdersAccountDropdown />
         <div>
           <CustomWalletConnectButton />

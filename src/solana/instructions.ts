@@ -153,7 +153,7 @@ export async function cancelBidIx({
     console.log(`Cancelled order ${orderId} `, { cancelIx });
     return cancelIx;
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 }
 
@@ -210,11 +210,11 @@ export const createBuyOrderIx = async ({
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
 
-    const pcLotSize = new anchor.BN(1000000)
-    const coinLotSize = new anchor.BN(1000000000)
-    const _price = new anchor.BN(price).mul(pcLotSize);
-    const _qty = new anchor.BN(qty).mul(coinLotSize);
-    
+    // const pcLotSize = new anchor.BN(1000000);
+    // const coinLotSize = new anchor.BN(1000000000);
+    const _price = new anchor.BN(price);
+    const _qty = new anchor.BN(qty);
+
     const tx = await program.methods
       .newOrder(
         { bid: {} },
@@ -243,17 +243,17 @@ export const createBuyOrderIx = async ({
 
     return tx;
   } catch (err) {
-    console.log("Error in createBuyOrder", err);
+    console.error("Error in createBuyOrder", err);
   }
 };
 
 export const createSellOrderIx = async ({
   price,
   qty,
+  pcMint,
   program,
   marketPda,
   coinMint,
-  pcMint,
   authority,
 }: PlaceOrderIxParams) => {
   try {
@@ -300,11 +300,10 @@ export const createSellOrderIx = async ({
       ],
       new anchor.web3.PublicKey(FERMI_PROGRAM_ID)
     );
-    const pcLotSize = new anchor.BN(1000000)
-    const coinLotSize = new anchor.BN(1000000000)
-    const _price = new anchor.BN(price).mul(pcLotSize);
-    const _qty = new anchor.BN(qty).mul(coinLotSize);
-    
+    // const pcLotSize = new anchor.BN(1000000);
+    // const coinLotSize = new anchor.BN(1000000000)
+    const _price = new anchor.BN(price);
+    const _qty = new anchor.BN(qty);
     const tx = await program.methods
       .newOrder(
         { ask: {} },
@@ -581,30 +580,21 @@ export const finaliseAskIx = async ({
       new anchor.web3.PublicKey(program.programId)
     );
 
-    const [openOrdersCounterpartyPda] =
-      await anchor.web3.PublicKey.findProgramAddress(
-        [
-          Buffer.from("open-orders", "utf-8"),
-          marketPda.toBuffer(),
-          counterparty.toBuffer(),
-        ],
-        new anchor.web3.PublicKey(program.programId)
-      );
 
     const finalizeAskTx: string = await program.methods
       .finaliseMatchesAsk(eventSlot1, eventSlot2)
       .accounts({
         openOrdersOwner: openOrdersOwnerPda,
-        openOrdersCounterparty: openOrdersCounterpartyPda,
+        openOrdersCounterparty: counterparty,
         market: marketPda,
         coinMint: coinMint,
         pcMint: pcMint,
         reqQ: reqQPda,
         eventQ: eventQPda,
-        authority: authority,
         coinpayer: authorityCoinTokenAccount,
-        authoritySecond: authority,
         coinVault: coinVault,
+        authority:authority,
+        authoritySecond:authority
       })
       .rpc();
 
@@ -658,30 +648,21 @@ export const finaliseBidIx = async ({
       new anchor.web3.PublicKey(program.programId)
     );
 
-    const [openOrdersCounterpartyPda] =
-      await anchor.web3.PublicKey.findProgramAddress(
-        [
-          Buffer.from("open-orders", "utf-8"),
-          marketPda.toBuffer(),
-          counterparty.toBuffer(),
-        ],
-        new anchor.web3.PublicKey(program.programId)
-      );
 
     const finalizeBidTx = await program.methods
       .finaliseMatchesBid(eventSlot1, eventSlot2)
       .accounts({
         openOrdersOwner: openOrdersOwnerPda,
-        openOrdersCounterparty: openOrdersCounterpartyPda,
+        openOrdersCounterparty: counterparty,
         market: marketPda,
         pcVault: pcVault,
         reqQ: reqQPda,
         eventQ: eventQPda,
-        authority: authority,
         coinMint: coinMint,
         pcMint: pcMint,
-        authoritySecond: counterparty,
         pcpayer: authorityPcTokenAccount,
+        authority:authority,
+        authoritySecond:authority
       })
       .rpc();
 

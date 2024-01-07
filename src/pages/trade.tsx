@@ -107,7 +107,7 @@ const TradePage = () => {
                   <TokenBalancesTable />
                 </Tab>
               </Tabs>
-            </div>
+   </div>
           </div>
           <div className="flex-[1] style-card">
             <Orderbook />

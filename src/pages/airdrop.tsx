@@ -1,15 +1,15 @@
-import Airdrop from '@/components/Airdrop'
-import Layout from '@/components/Layout'
-import React from 'react'
+import Airdrop from "@/components/Airdrop";
+import Layout from "@/components/Layout";
+import React from "react";
 
-type Props = {}
+type Props = {};
 
 const airdrop = (props: Props) => {
   return (
     <Layout>
-    <Airdrop/>
+      <Airdrop />
     </Layout>
-  )
-}
+  );
+};
 
-export default airdrop
+export default airdrop;

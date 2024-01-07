@@ -34,7 +34,7 @@ type FermiStoreActions = {
   fetchAsks: () => Promise<void>;
   setProgram: (connection: Connection, wallet: AnchorWallet) => void;
   loadData: () => void;
-  reset:() => void;
+  reset: () => void;
 };
 
 export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
@@ -141,14 +141,22 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
         const openOrdersResponse = await program.account.openOrders.fetch(
           openOrdersPda
         );
-
+        console.log(openOrdersPda.toString());
         set({
           openOrdersAccount: openOrdersPda,
           tokenBalances: {
-            nativeCoinFree:(openOrdersResponse.nativeCoinFree/selectedMarket.coinLotSize).toString(),
-            nativeCoinTotal: (openOrdersResponse.nativeCoinTotal/selectedMarket.coinLotSize).toString(),
-            nativePcFree: (openOrdersResponse.nativePcFree/selectedMarket.pcLotSize).toString(),
-            nativePcTotal: (openOrdersResponse.nativePcTotal/selectedMarket.pcLotSize).toString(),
+            nativeCoinFree: (
+              openOrdersResponse.nativeCoinFree / selectedMarket.coinLotSize
+            ).toString(),
+            nativeCoinTotal: (
+              openOrdersResponse.nativeCoinTotal / selectedMarket.coinLotSize
+            ).toString(),
+            nativePcFree: (
+              openOrdersResponse.nativePcFree / selectedMarket.pcLotSize
+            ).toString(),
+            nativePcTotal: (
+              openOrdersResponse.nativePcTotal / selectedMarket.pcLotSize
+            ).toString(),
           },
         });
         let orderIds = openOrdersResponse?.orders
@@ -190,18 +198,21 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
 
         const eventQueueRes = await program.account.eventQueue.fetch(eventQPda);
         const parsedEventQueue = parseEventQ(eventQueueRes.buf);
-        console.log(parsedEventQueue) 
+        console.log(parsedEventQueue);
         set({ eventQ: parsedEventQueue });
       } catch (err) {
         console.log(err);
       }
     },
     loadData: async () => {
-      const { fetchAsks, fetchBids, fetchEventQ, fetchOpenOrders } = get();
-      await fetchAsks();
-      await fetchBids();
-      await fetchEventQ();
-      await fetchOpenOrders();
+      const { fetchAsks, fetchBids, fetchEventQ, fetchOpenOrders, program } =
+        get();
+      if (program) {
+        await fetchAsks();
+        await fetchBids();
+        await fetchEventQ();
+        await fetchOpenOrders();
+      }
     },
     reset: async () => {
       set({
