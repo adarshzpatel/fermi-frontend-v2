@@ -5,6 +5,10 @@
 
 
 @layer components{
+  .screen-center {
+    @apply flex items-center justify-center min-h-[calc(100vh-64px)];
+  }
+
   .style-card{
     @apply bg-gradient-to-br from-default-50 to-black border border-default ; 
   }

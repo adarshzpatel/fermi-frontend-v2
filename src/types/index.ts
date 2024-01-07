@@ -17,8 +17,6 @@ export type MarketType = {
   pcMint:string 
   coinMint:string 
   marketPda:string 
-  pcLotSize:number
-  coinLotSize:number
 }
 
 

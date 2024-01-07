@@ -1,14 +1,12 @@
 import Chart from "@/components/Chart";
 import Layout from "@/components/Layout";
 import MarketSelector from "@/components/MarketSelector";
-
 import OpenOrders from "@/components/OpenOrdersTable";
 import Orderbook from "@/components/Orderbook";
 import PlaceOrder from "@/components/PlaceOrder";
 import TokenBalancesTable from "@/components/TokenBalancesTable";
 import { MARKETS } from "@/solana/config";
 import { useFermiStore } from "@/stores/fermiStore";
-
 import { Spinner, Tab, Tabs } from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -67,7 +65,9 @@ const TradePage = () => {
   if (loading) {
     return (
       <Layout>
+        <div className="flex items-center justify-center screen-center">
         <Spinner label="Loading..." size="lg" />
+        </div>
       </Layout>
     );
   }

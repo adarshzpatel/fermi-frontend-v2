@@ -78,8 +78,8 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: priceFromOrderId(item?.orderId, selectedMarket.pcLotSize),
-            qty: Number(item?.qty) / selectedMarket.coinLotSize,
+            price: priceFromOrderId(item?.orderId),
+            qty: Number(item?.qty),
           };
         });
 
@@ -110,8 +110,8 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
           return {
             ...item,
             orderId: item.orderId.toString(),
-            price: priceFromOrderId(item?.orderId, selectedMarket.pcLotSize),
-            qty: Number(item?.qty) / selectedMarket.coinLotSize,
+            price: priceFromOrderId(item?.orderId),
+            qty: Number(item?.qty),
           };
         });
 
@@ -146,16 +146,16 @@ export const useFermiStore = create<FermiStoreState & FermiStoreActions>(
           openOrdersAccount: openOrdersPda,
           tokenBalances: {
             nativeCoinFree: (
-              openOrdersResponse.nativeCoinFree / selectedMarket.coinLotSize
+              openOrdersResponse.nativeCoinFree 
             ).toString(),
             nativeCoinTotal: (
-              openOrdersResponse.nativeCoinTotal / selectedMarket.coinLotSize
+              openOrdersResponse.nativeCoinTotal 
             ).toString(),
             nativePcFree: (
-              openOrdersResponse.nativePcFree / selectedMarket.pcLotSize
+              openOrdersResponse.nativePcFree 
             ).toString(),
             nativePcTotal: (
-              openOrdersResponse.nativePcTotal / selectedMarket.pcLotSize
+              openOrdersResponse.nativePcTotal 
             ).toString(),
           },
         });

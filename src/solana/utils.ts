@@ -19,9 +19,9 @@ import * as spl from "@solana/spl-token";
 import { EventQueueItem, Order } from "@/types";
 import { FermiDex, IDL } from "./idl";
 
-export const priceFromOrderId = (orderId: BN, decimals: number) => {
+export const priceFromOrderId = (orderId: BN) => {
   const price = BN(orderId).shrn(64).toNumber();
-  return price / decimals;
+  return price
 };
 
 export const timestampFromOrderId = (orderId: BN) => {
