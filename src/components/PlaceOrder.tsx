@@ -82,8 +82,10 @@ const PlaceOrder = () => {
         toast("Sell order placed successfully");
       }
     } catch (err: any) {
-      console.log("Error in handlePlaceOrder:", err);
-      toast.error(err?.message);
+      const errMsg = err?.message ?? "Something went wrong";  
+      console.error("Error in handlePlaceOrder",errMsg)
+      // TODO :  do proper error handling 
+      toast.error("Failed to place order, check console");
     } finally {
       setProcessing(false);
       await loadData()

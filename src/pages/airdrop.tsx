@@ -67,7 +67,7 @@ const Airdrop = () => {
 
       setBalances((prev) => ({
         ...prev,
-        pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
+        pcBalance: (Number(pcBalance) / 1000000).toFixed(2),
       }));
     } catch (err) {
       setBalances((prev) => ({
@@ -95,7 +95,7 @@ const Airdrop = () => {
       );
       setBalances((prev) => ({
         ...prev,
-        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(
+        coinBalance: (Number(coinBalance) / 1000000000).toFixed(
           2
         ),
       }));
@@ -188,7 +188,7 @@ const Airdrop = () => {
               onClick={() =>
                 airdropToken(
                   selectedMarket.pcMint,
-                  1000 * selectedMarket.pcLotSize
+                  1000 * 1000000
                 )
               }
               size="sm"
@@ -208,7 +208,7 @@ const Airdrop = () => {
               onClick={() =>
                 airdropToken(
                   selectedMarket.coinMint,
-                  1000 * selectedMarket.coinLotSize
+                  1000 * 1000000000
                 )
               }
               size="sm"
