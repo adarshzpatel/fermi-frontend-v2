@@ -1,6 +1,6 @@
-import Layout from "@/components/Layout";
+import Layout from "@/components/layout/Layout";
 import { MARKETS } from "@/solana/config";
-import { fetchTokenBalance, mintTo } from "@/solana/utils";
+import { fetchTokenBalance } from "@/solana/utils/helpers";
 import {
   Button,
   Select,
@@ -24,6 +24,7 @@ const Airdrop = () => {
   const [isLoading, setIsLoading] = useState(false);
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
+
 
   const [marketName, setMarketName] = useState<Selection>(
     new Set([MARKETS[0].marketPda])

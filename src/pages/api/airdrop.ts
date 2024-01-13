@@ -1,5 +1,6 @@
-import { createAssociatedTokenAccount, mintTo } from '@/solana/utils';
-import { AnchorProvider,  Wallet } from '@project-serum/anchor';
+
+import { createAssociatedTokenAccount, mintTo } from '@/solana/utils/helpers';
+import { AnchorProvider,  Wallet } from '@coral-xyz/anchor';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import type { NextApiRequest, NextApiResponse } from 'next'

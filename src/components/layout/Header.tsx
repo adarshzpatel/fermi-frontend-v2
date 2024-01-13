@@ -2,7 +2,7 @@ import {
   Link,
 } from "@nextui-org/react";
 import CustomWalletConnectButton from "./CustomWalletConnectButton";
-import OpenOrdersAccountDropdown from "./OpenOrdersAccount";
+import OpenOrdersAccountDropdown from "../OpenOrdersAccount";
 
 const Header = () => {
   return (

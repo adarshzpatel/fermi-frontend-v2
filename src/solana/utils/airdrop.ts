@@ -1,8 +1,7 @@
-import * as anchor from "@project-serum/anchor";
+import * as anchor from "@coral-xyz/anchor";
 import * as spl from "@solana/spl-token";
-import { mintTo } from "./mintTo";
 import { type Keypair, type Connection, type PublicKey } from "@solana/web3.js";
-import { createAssociatedTokenAccount } from "./helpers";
+import { createAssociatedTokenAccount, mintTo } from "./helpers";
 
 interface AirdropTokenParams {
   receiverPk: PublicKey;
@@ -18,7 +17,7 @@ export async function airdropToken({
   connection,
   mint,
   amount,
-}: AirdropTokenParams): Promise<void>  {
+}: AirdropTokenParams): Promise<void> {
   try {
     const wallet = new anchor.Wallet(ownerKp);
     const provider = new anchor.AnchorProvider(

@@ -1,44 +1,30 @@
 import Chart from "@/components/Chart";
-import Layout from "@/components/Layout";
-import MarketSelector from "@/components/MarketSelector";
+import Layout from "@/components/layout/Layout";
+import MarketSelector from "@/components/trade/MarketSelector";
 import OpenOrders from "@/components/OpenOrdersTable";
-import Orderbook from "@/components/Orderbook";
-import PlaceOrder from "@/components/PlaceOrder";
+import Orderbook from "@/components/trade/Orderbook";
+import PlaceOrder from "@/components/trade/PlaceOrderForm";
 import TokenBalancesTable from "@/components/TokenBalancesTable";
 import { MARKETS } from "@/solana/config";
 import { useFermiStore } from "@/stores/fermiStore";
 import { Spinner, Tab, Tabs } from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { AnchorProvider } from "@coral-xyz/anchor";
 
 const TradePage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedMarketPda = searchParams.get("market");
-  const { setProgram, setSelectedMarket, selectedMarket, loadData, reset } =
-    useFermiStore();
-  const { connection } = useConnection();
-  const currentWallet = useAnchorWallet();
+  const marketPdaParam = searchParams.get("market");
   const [loading, setLoading] = useState(false);
-
-  const loadProgramAndMarket = async () => {
-    try {
-      setLoading(true);
-      if (!connection) throw new Error("Connection not found");
-      if (!currentWallet) throw new Error("Wallet not connected");
-      if (!selectedMarketPda) throw new Error("Market not selected");
-      setProgram(connection, currentWallet);
-      await loadData();
-    } catch (err: any) {
-      console.log(err);
-      toast.error(err.message ?? "Something went wrong , check console ");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { connection } = useConnection();
+  const connectedWallet = useAnchorWallet();
+  const updateMarket = useFermiStore((state) => state.actions.updateMarket);
+  const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  const initClient = useFermiStore((state) => state.actions.initClient);
 
   const changeMarket = (marketPda: string) => {
     const params = new URLSearchParams();
@@ -46,27 +32,47 @@ const TradePage = () => {
     const newMarket =
       MARKETS.find((it) => it.marketPda === marketPda) || MARKETS[0];
 
-    setSelectedMarket(newMarket);
+    updateMarket(newMarket);
     params.set("market", newMarket.marketPda);
     router.push(`${pathname}?${params.toString()}`);
   };
 
   useEffect(() => {
-    reset();
-    if (!selectedMarketPda) {
-      changeMarket(MARKETS[0].marketPda);
-    } else if (!selectedMarket) {
-      changeMarket(selectedMarketPda);
+    // Set Market from URL
+    if (marketPdaParam) {
+      changeMarket(marketPdaParam);
     } else {
-      loadProgramAndMarket();
+      // IF no market in URL set to default
+      changeMarket(MARKETS[0].marketPda);
     }
-  }, [connection, currentWallet, selectedMarketPda, selectedMarket]);
+  }, []);
+
+  useEffect(() => {
+    // Initialise client
+    try {
+      if (!connectedWallet || !connection) return;
+      const provider = new AnchorProvider(
+        connection,
+        connectedWallet,
+        AnchorProvider.defaultOptions()
+      );
+      initClient(provider);
+    } catch (err: any) {
+      const errMessage = err?.message ?? "Error initializing client";
+      console.error(errMessage);
+      toast.error(errMessage);
+    }
+  }, [connectedWallet,connection,initClient]);
+
+  if (!connectedWallet) {
+    // Display Wallet selection modal
+  }
 
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center screen-center">
-        <Spinner label="Loading..." size="lg" />
+          <Spinner label="Loading..." size="lg" />
         </div>
       </Layout>
     );
@@ -85,7 +91,7 @@ const TradePage = () => {
                     changeMarket(marketPubKey as string);
                   }}
                   selectedKeys={[
-                    selectedMarket?.marketPda || MARKETS[0].marketPda,
+                    selectedMarket.current?.marketPda || MARKETS[0].marketPda,
                   ]}
                 />
                 <PlaceOrder />
@@ -94,7 +100,7 @@ const TradePage = () => {
                 <Chart />
               </div>
             </div>
-            <div className="style-card ">
+            {/* <div className="style-card ">
               <Tabs
                 variant="underlined"
                 classNames={{ cursor: "bg-default-500", panel: "p-4 pt-0" }}
@@ -107,11 +113,11 @@ const TradePage = () => {
                   <TokenBalancesTable />
                 </Tab>
               </Tabs>
-   </div>
+            </div>*/}
           </div>
-          <div className="flex-[1] style-card">
+          {/* <div className="flex-[1] style-card">
             <Orderbook />
-          </div>
+          </div> */}
         </div>
       </div>
     </Layout>

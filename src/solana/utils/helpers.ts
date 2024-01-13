@@ -4,12 +4,12 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { BN } from "@project-serum/anchor";
+import { BN } from "@coral-xyz/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import * as anchor from '@project-serum/anchor';
+import * as anchor from '@coral-xyz/anchor';
 import * as spl from '@solana/spl-token';
 
 
@@ -56,12 +56,6 @@ export const QUOTE_DECIMALS = 6;
 export function toUiDecimalsForQuote(nativeAmount: number): number {
   return toUiDecimals(nativeAmount, QUOTE_DECIMALS);
 }
-
-///
-
-///
-/// web3js extensions
-///
 
 /**
  * Get the address of the associated token account for a given mint and owner
@@ -226,3 +220,4 @@ export const createAssociatedTokenAccount = async (
     );
     await provider.sendAndConfirm(tx, []);
   };
+  
