@@ -1,72 +1,127 @@
 import Chart from "@/components/Chart";
 import Layout from "@/components/layout/Layout";
-import MarketSelector from "@/components/trade/MarketSelector";
-import OpenOrders from "@/components/OpenOrdersTable";
-import Orderbook from "@/components/trade/Orderbook";
 import PlaceOrder from "@/components/trade/PlaceOrderForm";
-import TokenBalancesTable from "@/components/TokenBalancesTable";
-import { MARKETS } from "@/solana/config";
+import MarketSelector from "@/components/trade/MarketSelector";
+import Orderbook from "@/components/trade/Orderbook";
+import { useEffect, useState } from "react";
 import { useFermiStore } from "@/stores/fermiStore";
-import { Spinner, Tab, Tabs } from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { use, useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { OpenBookV2Client } from "@/solana/fermiClient";
 import { AnchorProvider } from "@coral-xyz/anchor";
+import toast from "react-hot-toast";
+import { MARKETS, PROGRAM_ID } from "@/solana/config";
+import { Commitment, PublicKey } from "@solana/web3.js";
+import { ClientRequest } from "http";
+import { useSearchParams } from "next/navigation";
+import { setAutoFreeze } from "immer";
+import { Spinner, useDisclosure } from "@nextui-org/react";
+import CreateOpenOrdersAccountModal from "@/components/trade/CreateOpenOrdersAccountModal";
+
+const postSendTxCallback = ({ txid }: { txid: string }) => {
+  console.group("Post tx sent callback");
+  console.log(`Transaction ${txid} sent`);
+  console.log(
+    `Explorer: https://explorer.solana.com/tx/${txid}?cluster=devnet`
+  );
+  toast.success(`Transaction ${txid} sent`);
+};
+
+const txConfirmationCommitment: Commitment = "processed";
+const opts = {
+  postSendTxCallback,
+  txConfirmationCommitment,
+};
 
 const TradePage = () => {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const {
+    isOpen: isCreateOOModalOpen,
+    onOpen: openCreateOOModal,
+    onClose: closeCreateOOModal,
+    onOpenChange: onCreateOOModalOpenChange,
+  } = useDisclosure({ id: "create-oo-modal" });
   const marketPdaParam = searchParams.get("market");
-  const [loading, setLoading] = useState(false);
-  const { connection } = useConnection();
+  const store = useFermiStore();
+  const client = store.client;
+  const selectedMarket = store.selectedMarket;
+  const set = store.set;
   const connectedWallet = useAnchorWallet();
-  const updateMarket = useFermiStore((state) => state.actions.updateMarket);
-  const selectedMarket = useFermiStore((state) => state.selectedMarket);
-  const initClient = useFermiStore((state) => state.actions.initClient);
+  const { connection } = useConnection();
+  const [loading, setLoading] = useState(false);
 
-  const changeMarket = (marketPda: string) => {
-    const params = new URLSearchParams();
-    // if invalid market set to default
-    const newMarket =
-      MARKETS.find((it) => it.marketPda === marketPda) || MARKETS[0];
 
-    updateMarket(newMarket);
-    params.set("market", newMarket.marketPda);
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  useEffect(() => {
-    // Set Market from URL
-    if (marketPdaParam) {
-      changeMarket(marketPdaParam);
-    } else {
-      // IF no market in URL set to default
-      changeMarket(MARKETS[0].marketPda);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Initialise client
+  const initialise = async () => {
+    setLoading(true);
     try {
-      if (!connectedWallet || !connection) return;
+      if (!connection) throw new Error("No connection found ");
+      if (!connectedWallet) throw new Error("No wallet found");
       const provider = new AnchorProvider(
         connection,
         connectedWallet,
         AnchorProvider.defaultOptions()
       );
-      initClient(provider);
-    } catch (err: any) {
-      const errMessage = err?.message ?? "Error initializing client";
-      console.error(errMessage);
-      toast.error(errMessage);
-    }
-  }, [connectedWallet,connection,initClient]);
 
-  if (!connectedWallet) {
-    // Display Wallet selection modal
-  }
+      const client = new OpenBookV2Client(
+        provider,
+        new PublicKey(PROGRAM_ID),
+        opts
+      );
+
+      set((state) => {
+        state.client = client;
+        state.connected = true;
+        state.connection = connection;
+      });
+
+      console.log("Client initialized");
+      console.log("Fetching market")
+      let marketPubKey: PublicKey;
+      if (marketPdaParam) {
+        marketPubKey = new PublicKey(marketPdaParam);
+      } else {
+        marketPubKey = new PublicKey(MARKETS[0].marketPda);
+      }
+      const market = await client.deserializeMarketAccount(marketPubKey);
+      if(!market) throw new Error("Market not found")
+
+      const bidsAccount = await client.deserializeBookSide(
+        market.bids
+      );
+
+      const bids = bidsAccount && client.getLeafNodes(bidsAccount);
+      const asksAccount = await client.deserializeBookSide(
+        market.asks
+      );
+
+      const asks = asksAccount && client.getLeafNodes(asksAccount);
+      const eventHeapAccount = await client.deserializeEventHeapAccount(
+        market.eventHeap
+      );
+      
+      const eventHeap = eventHeapAccount && eventHeapAccount.nodes;
+
+      set((state) => {
+        state.selectedMarket.publicKey = new PublicKey(marketPubKey);
+        state.selectedMarket.current = market;
+        state.selectedMarket.bids = bids;
+        state.selectedMarket.asks = asks;
+        state.selectedMarket.eventHeap = eventHeap;
+      });
+
+      console.log("Market initialised")
+
+      await store.actions.fetchOpenOrders()
+    
+    } catch (err) {
+      console.error("Failed to initialise : ", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connectedWallet) initialise();
+  }, [connectedWallet]);
 
   if (loading) {
     return (
@@ -85,15 +140,7 @@ const TradePage = () => {
           <div className="flex-[3] gap-4 flex flex-col">
             <div className="flex gap-4">
               <div className="space-y-4">
-                <MarketSelector
-                  onSelectionChange={(key) => {
-                    const marketPubKey = Array.from(key)[0];
-                    changeMarket(marketPubKey as string);
-                  }}
-                  selectedKeys={[
-                    selectedMarket.current?.marketPda || MARKETS[0].marketPda,
-                  ]}
-                />
+                <MarketSelector />
                 <PlaceOrder />
               </div>
               <div className=" flex-[2] style-card p-4">
@@ -115,11 +162,16 @@ const TradePage = () => {
               </Tabs>
             </div>*/}
           </div>
-          {/* <div className="flex-[1] style-card">
+          <div className="flex-[1] style-card">
             <Orderbook />
-          </div> */}
+          </div>
         </div>
       </div>
+      <CreateOpenOrdersAccountModal
+        isOpen={isCreateOOModalOpen}
+        onOpenChange={openCreateOOModal}
+        closeModal={closeCreateOOModal}
+      />
     </Layout>
   );
 };

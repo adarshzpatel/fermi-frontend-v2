@@ -1,19 +1,21 @@
 import useSolBalance from "@/hooks/useSolBalance";
+import { useFermiStore } from "@/stores/fermiStore";
 import {
-  Button,
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
 } from "@nextui-org/react";
 import { useWalletMultiButton } from "@solana/wallet-adapter-base-ui";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletModal, useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TbArrowsExchange2, TbCopy, TbLogout } from "react-icons/tb";
 
 const CustomWalletConnectButton = () => {
+  const connectedWallet = useAnchorWallet()
+  const {connection} = useConnection()
   const { disconnect } = useWallet();
   const { solBalance } = useSolBalance();
   const { setVisible: setModalVisible } = useWalletModal();
@@ -25,6 +27,14 @@ const CustomWalletConnectButton = () => {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLUListElement>(null);
+  
+  const connectClientWithWallet = useFermiStore(state => state.actions.connectClientWithWallet)
+  
+  useEffect(()=>{
+    if(connection && connectedWallet?.publicKey){
+      connectClientWithWallet(connectedWallet,connection)
+    }
+  },[connection,connectedWallet])
 
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
@@ -50,6 +60,8 @@ const CustomWalletConnectButton = () => {
       // Silently catch because any errors are caught by the context `onError` handler
     });
   }, [disconnect]);
+
+
 
   const content = useMemo(() => {
     if (publicKey) {

@@ -1,4 +1,5 @@
 import { useFermiStore } from "@/stores/fermiStore";
+import { BN } from "@coral-xyz/anchor";
 import { useEffect, useState } from "react";
 
 // ORDERBOOK
@@ -23,6 +24,7 @@ const AskRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const BidRow = ({ price, qty }: OrderRowProps) => {
+
   return (
     <div className="flex pl-4 pr-2 text-green-500 justify-between items-center font-medium">
       <span>{price}</span>
@@ -32,9 +34,14 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const Orderbook = () => {
-  const { asks, bids } = useFermiStore((s) => ({ asks: s.asks, bids: s.bids }));
+  const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  const { asks, bids } = selectedMarket;
 
 
+  useEffect(()=>{
+
+    console.log({asks,bids})
+  },[])
   return (
     <>
       <div className="p-4 pb-0">
@@ -49,16 +56,24 @@ const Orderbook = () => {
         {/* Bids Column */}
         <div>
           <div className="bg-green-900/10">
-            {bids?.map((item, idx) => (
-              <BidRow price={item?.price} qty={item?.qty} key={`bid-${idx}`} />
+            {bids?.map((item) => (
+              <BidRow
+                price={(new BN(item?.key).shrn(64)).toString()}
+                qty={item?.quantity?.toString()}
+                key={`bid-${item?.clientOrderId?.toString()}`}
+              />
             ))}
           </div>
           {/* Asks column */}
         </div>
         <div>
           <div className="bg-red-900/10">
-            {asks?.map((item, idx) => (
-              <AskRow price={item?.price} qty={item?.qty} key={`ask-${idx}`} />
+            {asks?.map((item) => (
+              <AskRow
+              price={(new BN(item?.key).shrn(64)).toString()}
+                qty={item?.quantity?.toString()}
+                key={`ask-${item?.clientOrderId?.toString()}`}
+              />
             ))}
           </div>
         </div>

@@ -1,15 +1,47 @@
 import { MARKETS } from "@/solana/config";
 import { useFermiStore } from "@/stores/fermiStore";
-import { Select, SelectItem } from "@nextui-org/react";
-import React from "react";
+import { Select, SelectItem, Selection } from "@nextui-org/react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
-type Props = {
-  selectedKeys: Iterable<React.Key> | "all" | undefined;
-  onSelectionChange: (key: Iterable<React.Key>) => void;
-};
+const MarketSelector = () => {
+  const { replace } = useRouter();
+  const searchParams = useSearchParams();
+  const marketPdaParam = searchParams.get("market");
+  const pathname = usePathname();
+  const updateMarket = useFermiStore((state) => state.actions.updateMarket);
+  const [selectedKeys, setSelectedKeys] = useState([MARKETS[0].marketPda]);
+  const client = useFermiStore(state => state.client)
+  const selectedMarketPk = useFermiStore(state => state.selectedMarket.publicKey)
+  const changeMarket = async (marketPda: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("market", marketPda);
+    replace(`${pathname}?${params.toString()}`);
+    const knownMarket = MARKETS.find((m) => m.marketPda === marketPda);
+    if (knownMarket) {
+      setSelectedKeys([marketPda]);
+      await updateMarket(knownMarket.marketPda);
+    } else {
+      setSelectedKeys(["Unknown"]);
+      await updateMarket(marketPda)
+    }
+  };
 
-const MarketSelector = (props: Props) => {
-  const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  useEffect(() => {
+    // If market not defined sin url, set it to first market
+    if (!marketPdaParam) {
+      changeMarket(MARKETS[0].marketPda);
+    } else {
+      if(marketPdaParam === selectedMarketPk?.toString()) return 
+      changeMarket(marketPdaParam)
+    }
+  }, [marketPdaParam]);
+  
+  const onSelectionChange = (key:Selection) => {
+    // change market when change
+    const marketPubKey = Array.from(key)[0];
+    changeMarket(marketPubKey as string)
+  };
 
   return (
     <Select
@@ -24,12 +56,12 @@ const MarketSelector = (props: Props) => {
         popover: " rounded-none style-card shadow-lg",
       }}
       multiple={false}
-      selectedKeys={props.selectedKeys}
-      onSelectionChange={props.onSelectionChange}
+      selectedKeys={selectedKeys}
+      onSelectionChange={onSelectionChange}
     >
       {MARKETS.map((m) => (
         <SelectItem
-          aria-label={`${selectedMarket.name}`}
+          aria-label={`${m.name}`}
           key={m.marketPda}
           value={m.marketPda}
           textValue={`${m.name}`}
@@ -37,6 +69,15 @@ const MarketSelector = (props: Props) => {
           {m.name}
         </SelectItem>
       ))}
+      <SelectItem
+      aria-label="Unknown Market"
+      key={"Unknown"}
+      value={"Unknown"}
+      textValue="Unknown"
+      hidden
+      > 
+      Unknown
+      </SelectItem>
     </Select>
   );
 };

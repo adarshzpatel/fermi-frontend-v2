@@ -5,10 +5,11 @@ import Copyable from "./shared/Copyable";
 type Props = {};
 
 const OpenOrdersAccount = (props: Props) => {
+  
   const { tokenBalances, openOrdersAccount } = useFermiStore();
   const openOrdersPda = useMemo(() => {
     const str = openOrdersAccount?.toString();
-    if (!str) return;
+  if (!str) return;
     return str.slice(0, 4) + "..." + str.slice(-4);
   }, [openOrdersAccount]);
   
