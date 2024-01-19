@@ -13,6 +13,7 @@ const MarketSelector = () => {
   const [selectedKeys, setSelectedKeys] = useState([MARKETS[0].marketPda]);
   const client = useFermiStore(state => state.client)
   const selectedMarketPk = useFermiStore(state => state.selectedMarket.publicKey)
+
   const changeMarket = async (marketPda: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("market", marketPda);

@@ -1,9 +1,11 @@
+import {
+  checkOrCreateAssociatedTokenAccount,
+  mintTo,
+} from "@/solana/utils/helpers";
+import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
 
-import { createAssociatedTokenAccount, mintTo } from '@/solana/utils/helpers';
-import { AnchorProvider,  Wallet } from '@coral-xyz/anchor';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
-import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const OWNER_KEYPAIR = Keypair.fromSecretKey(
   Uint8Array.from([
@@ -21,37 +23,30 @@ export default async function handler(
   const destinationAddress = req.body?.destinationAddress;
   const mint = req.body?.mint;
   const amount = Number(req.body?.amount);
-  if(!destinationAddress || !mint || !amount) res.status(500).send("Invalid inputs");
-  
+  if (!destinationAddress || !mint || !amount)
+    res.status(500).send("Invalid inputs");
+
   const destination = new PublicKey(destinationAddress);
   const wallet = new Wallet(OWNER_KEYPAIR);
-  const connection = new Connection("https://api.devnet.solana.com",{commitment:'confirmed'});
-  const provider = new AnchorProvider(connection,wallet,AnchorProvider.defaultOptions());
-
-  const authorityCoinTokenAccount: PublicKey = await getAssociatedTokenAddress(
-    new PublicKey(mint),
-    destination,
-    false,
+  const connection = new Connection("https://api.devnet.solana.com", {
+    commitment: "confirmed",
+  });
+  const provider = new AnchorProvider(
+    connection,
+    wallet,
+    AnchorProvider.defaultOptions()
   );
 
-  if (!(await connection.getAccountInfo(authorityCoinTokenAccount))) {
-    console.log("Coin ATA not found , creating ... ")
-    await createAssociatedTokenAccount(
-      provider,
-      new PublicKey(mint),
-      authorityCoinTokenAccount,
-      destination
-    );
-    console.log("Created COIN ATA")
-  }
+  const authorityCoinTokenAccount =
+    await checkOrCreateAssociatedTokenAccount(provider,new PublicKey(mint), destination);
 
   await mintTo(
     provider,
     new PublicKey(mint),
-    authorityCoinTokenAccount,
+    new PublicKey(authorityCoinTokenAccount),
     BigInt(amount)
   );
-  console.log("MINTED")
+  console.log("MINTED");
 
-  res.status(200).json({ message:"SUCESS" })
+  res.status(200).json({ message: "SUCESS" });
 }

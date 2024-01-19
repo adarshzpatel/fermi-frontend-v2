@@ -41,17 +41,20 @@ const TradePage = () => {
     onOpenChange: onCreateOOModalOpenChange,
   } = useDisclosure({ id: "create-oo-modal" });
   const marketPdaParam = searchParams.get("market");
-  const store = useFermiStore();
-  const client = store.client;
-  const selectedMarket = store.selectedMarket;
-  const set = store.set;
+  const set = useFermiStore(state => state.set)
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
-  const [loading, setLoading] = useState(false);
+  const isClientLoading = useFermiStore(state => state.isClientLoading)
+  const isMarketLoading = useFermiStore(state => state.isMarketLoading)
+  const fetchOpenOrders = useFermiStore(state => state.actions.fetchOpenOrders)
 
 
   const initialise = async () => {
-    setLoading(true);
+    console.group("INIT FERMI CLIENT")
+    set(state => {
+      state.isClientLoading = true
+      state.isMarketLoading = true
+    })
     try {
       if (!connection) throw new Error("No connection found ");
       if (!connectedWallet) throw new Error("No wallet found");
@@ -71,6 +74,7 @@ const TradePage = () => {
         state.client = client;
         state.connected = true;
         state.connection = connection;
+        state.isClientLoading = false
       });
 
       console.log("Client initialized");
@@ -106,24 +110,25 @@ const TradePage = () => {
         state.selectedMarket.bids = bids;
         state.selectedMarket.asks = asks;
         state.selectedMarket.eventHeap = eventHeap;
+        state.isMarketLoading = false
       });
 
       console.log("Market initialised")
 
-      await store.actions.fetchOpenOrders()
+      await fetchOpenOrders()
     
     } catch (err) {
       console.error("Failed to initialise : ", err);
     } finally {
-      setLoading(false);
+     
     }
   };
 
   useEffect(() => {
-    if (connectedWallet) initialise();
+     initialise();
   }, [connectedWallet]);
 
-  if (loading) {
+  if (isClientLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center screen-center">

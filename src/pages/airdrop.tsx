@@ -1,13 +1,10 @@
 import Layout from "@/components/layout/Layout";
+import CreateOpenOrdersAccountModal from "@/components/trade/CreateOpenOrdersAccountModal";
+import MarketSelector from "@/components/trade/MarketSelector";
 import { MARKETS } from "@/solana/config";
 import { fetchTokenBalance } from "@/solana/utils/helpers";
-import {
-  Button,
-  Select,
-  SelectItem,
-  Selection,
-  Spinner,
-} from "@nextui-org/react";
+import { useFermiStore } from "@/stores/fermiStore";
+import { Button, Spinner, useDisclosure } from "@nextui-org/react";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import axios from "axios";
@@ -15,97 +12,98 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-type Balances = { pcBalance: string; coinBalance: string };
+type Balances = { baseBalance: string; quoteBalance: string };
 
 const Airdrop = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedMarketPda = searchParams.get("market");
   const [isLoading, setIsLoading] = useState(false);
+  const selectedMarketPda = searchParams.get("market");
+  const openOrdersAccountPk = useFermiStore(
+    (state) => state.openOrders.publicKey
+  );
+  const isOpenOrdersLoading = useFermiStore((state) => state.isOOLoading);
+  const updateMarket = useFermiStore((state) => state.actions.updateMarket);
+  const isMarketLoading = useFermiStore((state) => state.isMarketLoading);
+  const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  const fetchOpenOrders = useFermiStore(
+    (state) => state.actions.fetchOpenOrders
+  );
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
 
+  const {
+    isOpen: isCreateOOModalOpen,
+    onOpen: openCreateOOModal,
+    onClose: closeCreateOOModal,
+    onOpenChange: onCreateOOModalOpenChange,
+  } = useDisclosure({ id: "create-oo-modal" });
 
-  const [marketName, setMarketName] = useState<Selection>(
-    new Set([MARKETS[0].marketPda])
-  );
-
-  const [selectedMarket, setSelectedMarket] = useState(MARKETS[0]);
   const [balances, setBalances] = useState<Balances>({
-    pcBalance: "0.00",
-    coinBalance: "0.00",
+    quoteBalance: "0.00",
+    baseBalance: "0.00",
   });
 
   useEffect(() => {
-    // change selected market based on url params selectedMarketPda
     if (!selectedMarketPda) {
-      setMarketName(new Set([MARKETS[0].marketPda]));
-      setSelectedMarket(MARKETS[0]);
+      router.push("/airdrop?market=" + MARKETS[0].marketPda);
     } else {
-      const newMarket =
-        MARKETS.find((it) => it.marketPda === selectedMarketPda) || MARKETS[0];
-      setMarketName(new Set([newMarket.marketPda]));
-      setSelectedMarket(newMarket);
+      updateMarket(selectedMarketPda);
+      fetchOpenOrders();
     }
   }, [selectedMarketPda]);
 
-  const getPcBalance = async () => {
+  const getQuoteBalance = async () => {
     try {
       setBalances((prev) => ({
         ...prev,
-        pcBalance: "Fetching...",
+        quoteBalance: "Fetching...",
       }));
-      if (!connectedWallet?.publicKey) {
-        alert("No wallet found");
-        return;
-      }
+      if (!connectedWallet?.publicKey) throw new Error("Wallet not connected");
+      if (!selectedMarket.current) throw new Error("Market not selected");
 
-      const pcBalance = await fetchTokenBalance(
+      const quoteBalance = await fetchTokenBalance(
         connectedWallet?.publicKey,
-        new PublicKey(selectedMarket.pcMint),
+        selectedMarket.current?.quoteMint,
         connection
       );
 
       setBalances((prev) => ({
         ...prev,
-        pcBalance: (Number(pcBalance) / 1000000).toFixed(2),
+        quoteBalance: (Number(quoteBalance) / 1000000).toFixed(2),
       }));
     } catch (err) {
       setBalances((prev) => ({
         ...prev,
-        pcBalance: "0.00",
+        quoteBalance: "0.00",
       }));
-      console.log("Error in getPcBalance", err);
+      console.log("Error in getQuoteBalance", err);
     }
   };
-  const getCoinBalance = async () => {
+  const getBaseBalance = async () => {
     try {
       setBalances((prev) => ({
         ...prev,
-        coinBalance: "Fetching...",
+        baseBalance: "Fetching...",
       }));
-      if (!connectedWallet?.publicKey) {
-        alert("No wallet found");
-        return;
-      }
+      if (!connectedWallet?.publicKey) throw new Error("Wallet not connected");
+      if (!selectedMarket.current) throw new Error("Market not selected");
 
-      const coinBalance = await fetchTokenBalance(
+      const baseBalance = await fetchTokenBalance(
         connectedWallet.publicKey,
-        new PublicKey(selectedMarket.coinMint),
+        selectedMarket.current?.baseMint,
         connection
       );
       setBalances((prev) => ({
         ...prev,
-        coinBalance: (Number(coinBalance) / 1000000000).toFixed(
-          2
-        ),
+        baseBalance: (Number(baseBalance) / 1000000000).toFixed(2),
       }));
     } catch (err) {
       setBalances((prev) => ({
         ...prev,
-        coinBalance: "0.00",
+        baseBalance: "0.00",
       }));
-      console.log("Error in getPcBalance", err);
+      console.log("Error in getBaseBalance", err);
     }
   };
 
@@ -120,8 +118,8 @@ const Airdrop = () => {
       console.log(data);
       const res = await axios.post("/api/airdrop", data);
       console.log(res.data);
-      await getPcBalance();
-      await getCoinBalance();
+      await getBaseBalance();
+      await getQuoteBalance();
       toast("Airdrop Successful ✅");
     } catch (err) {
       toast.error("Failed to send airdrop!!");
@@ -133,101 +131,120 @@ const Airdrop = () => {
 
   useEffect(() => {
     if (connectedWallet && selectedMarket) {
-      getPcBalance();
-      getCoinBalance();
+      getBaseBalance();
+      getQuoteBalance();
     }
   }, [selectedMarket, connectedWallet]);
+
+  // if (!isMarketLoading && !selectedMarket.publicKey) {
+  //   return (
+  //     <Layout>
+  //       <div className="flex items-center justify-center screen-center">
+  //         INVALID MARKET
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>
       <div className="screen-center">
-        <div className="overflow-hidden  relative flex flex-col gap-4 p-6 border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-100/75 via-black to-default-100/75">
+        <div className="overflow-hidden  relative flex flex-col gap-4 p-6 border border-default-200 bg-gradient-to-br max-w-md w-full from-default-100/75 via-black to-default-100/75">
           {/* PAY SECTION */}
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-medium whitespace-nowrap">
+          <div className="flex gap-4 items-center justify-between">
+            <p className="text-2xl  font-medium whitespace-nowrap">
               Airdrop Tokens
             </p>
-            <Select
-              selectedKeys={marketName}
-              onSelectionChange={(keys) => {
-                const marketPubKey = Array.from(keys)[0];
-                const selectedMarket = MARKETS.find(
-                  (it) => it.marketPda === marketPubKey
-                );
-                if (!selectedMarket) return;
-                router.push("/airdrop?market=" + selectedMarket.marketPda);
-              }}
-              className="w-40"
-              size="md"
-              selectionMode="single"
-              labelPlacement="outside"
-              aria-label="select-market"
-              radius="sm"
-            >
-              {MARKETS.map((m) => (
-                <SelectItem
-                  aria-label={`${m.coinName} / ${m.pcName}`}
-                  key={m.marketPda}
-                  value={m.marketPda}
-                  textValue={`${m.coinName} / ${m.pcName}`}
-                >
-                  {m.coinName} / {m.pcName}
-                </SelectItem>
-              ))}
-            </Select>
+            <MarketSelector />
           </div>
-          <div className="bg-default-100/80 p-4 rounded-md  border border-default-300">
-            <p>Market</p>
+          <div className="bg-default-100/80 p-4  border border-default-300">
+            <p className="font-medium">Market</p>
             <p className="text-xs text-default-600">
-              {selectedMarket.marketPda}
+              {!isMarketLoading
+                ? selectedMarket?.publicKey?.toString()
+                : "Loading Market...."}
             </p>
           </div>
-          <div className="bg-default-100/80 p-4 rounded-md  border border-default-300">
-            <p>{selectedMarket.pcName}</p>
-            <p className="text-xs text-default-600">{selectedMarket.pcMint}</p>
+          <div className="bg-default-100/80 p-4  border border-default-300">
+            <p className="font-medium">Quote token</p>
+            <p className="text-xs text-default-600">
+              {!isMarketLoading
+                ? selectedMarket.current?.quoteMint.toString()
+                : "Loading..."}
+            </p>
             <Button
-              onClick={() =>
+              isDisabled={isMarketLoading}
+              radius="none"
+              onClick={() => {
+                if (!selectedMarket.current) return;
                 airdropToken(
-                  selectedMarket.pcMint,
+                  selectedMarket?.current?.quoteMint.toString(),
                   1000 * 1000000
-                )
-              }
+                );
+              }}
               size="sm"
               className="my-2"
               color="primary"
             >
-              Airdrop 1000 {selectedMarket.pcName} tokens
+              Airdrop 1000 quote tokens
             </Button>
-            <p>Balance : {balances.pcBalance}</p>
+            <p>Balance : {balances.quoteBalance}</p>
           </div>
-          <div className="bg-default-100/80 p-4 rounded-md  border border-default-300">
-            <p>{selectedMarket.coinName}</p>
+          <div className="bg-default-100/80 p-4  border border-default-300">
+            <p className="font-medium">Base Token</p>
             <p className="text-xs text-default-600">
-              {selectedMarket.coinMint}
+              {!isMarketLoading
+                ? selectedMarket.current?.baseMint.toString()
+                : "Loading..."}
             </p>
             <Button
-              onClick={() =>
+              isDisabled={isMarketLoading}
+              onClick={() => {
+                if (!selectedMarket.current) return;
                 airdropToken(
-                  selectedMarket.coinMint,
+                  selectedMarket.current?.baseMint.toString(),
                   1000 * 1000000000
-                )
-              }
+                );
+              }}
               size="sm"
+              radius="none"
               className="my-2"
               color="primary"
             >
-              Airdrop 1000 {selectedMarket.coinName} tokens
+              Airdrop 1000 base tokens
             </Button>
-            <p>Balance : {balances.coinBalance}</p>
+            <p>Balance : {balances.baseBalance}</p>
+          </div>
+          <div className="bg-default-100/80 p-4  border border-default-300">
+            <p className="font-medium mb-2">
+              Open orders account {isOpenOrdersLoading && `( Loading )`}
+            </p>
+            {openOrdersAccountPk ? (
+              <p className="text-xs">{openOrdersAccountPk.toString()}</p>
+            ) : (
+              <Button
+                radius="none"
+                size="sm"
+                color="primary"
+                onClick={() => openCreateOOModal()}
+              >
+                Create open orders account
+              </Button>
+            )}
           </div>
           {isLoading && (
-            <div className="w-full h-full backdrop-blur-xl z-10 absolute bg-black/50 top-0 left-0 scale-[0.995] rounded-xl flex flex-col items-center justify-center gap-4">
+            <div className="w-full h-full backdrop-blur-xl z-10 absolute bg-black/50 top-0 left-0 scale-[0.995] flex flex-col items-center justify-center gap-4">
               <Spinner size="lg" />
               <p>Loading...</p>
             </div>
           )}
         </div>
       </div>
+      <CreateOpenOrdersAccountModal
+        closeModal={closeCreateOOModal}
+        isOpen={isCreateOOModalOpen}
+        onOpenChange={onCreateOOModalOpenChange}
+      />
     </Layout>
   );
 };

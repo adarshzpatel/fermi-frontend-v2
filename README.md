@@ -1,5 +1,7 @@
-# Bugs 
+# Todo 
 
-1. Fix lot size multiplications for sell order
-2. Fix Finalise order
-3. Open orders not initialised errors 
+[] Airdrop - 30 mins
+[] Display open orders - match with bids and asks - 30 mins
+[] Implement Finalise - 30 mins
+[] Implement Cancel - 30 mins
+[] Display balances - 30 mins

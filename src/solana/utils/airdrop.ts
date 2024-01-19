@@ -34,7 +34,7 @@ export async function airdropToken({
 
     if ((await connection.getAccountInfo(receiverTokenAccount)) == null) {
       console.log("ATA not found, creating one...");
-      await createAssociatedTokenAccount(
+    await createAssociatedTokenAccount(
         provider,
         new anchor.web3.PublicKey(mint),
         receiverTokenAccount,

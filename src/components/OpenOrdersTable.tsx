@@ -1,6 +1,6 @@
 import { useFermiStore } from "@/stores/fermiStore";
 import { Button, Chip } from "@nextui-org/react";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
+
 import { useEffect } from "react";
 
 

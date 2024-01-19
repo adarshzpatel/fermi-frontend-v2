@@ -72,13 +72,6 @@ const CreateOpenOrdersAccountModal = ({
     
       console.group("Create Open Orders Account")
 
-      console.log({
-        marketPublicKey:marketPublicKey.toString(),
-        accountIndex:accountIndex.toString(),
-        accountName,
-        connectedWallet:connectedWallet.publicKey.toString()
-      })
-
       const [ixs, openOrderPubKey] = await client.createOpenOrdersIx(
         marketPublicKey,
         accountIndex,

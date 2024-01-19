@@ -20,6 +20,9 @@ import EmptyWallet from "@/solana/utils/emptyWallet";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
 
 type FermiStore = {
+  isClientLoading: boolean;
+  isMarketLoading: boolean;
+  isOOLoading: boolean;
   connected: boolean;
   connection: Connection;
   client: OpenBookV2Client | undefined;
@@ -32,9 +35,9 @@ type FermiStore = {
   selectedMarket: {
     publicKey: PublicKey | undefined;
     current: MarketAccount | undefined;
-    bids: LeafNode[] | null;
-    asks: LeafNode[] | null;
-    eventHeap: { fillEvents: FillEvent[]; outEvents: OutEvent[] } | unknown;
+    bids: LeafNode[] | null | undefined;
+    asks: LeafNode[] | null | undefined;
+    eventHeap: EventHeapAccount | unknown;
     openOrdersAccount: OpenOrdersAccount | null;
   };
   actions: {
@@ -77,6 +80,9 @@ const emptyWallet = new EmptyWallet(Keypair.generate());
 export const useFermiStore = create<FermiStore>()(
   subscribeWithSelector((_set, get) => {
     return {
+      isClientLoading: true,
+      isMarketLoading: true,
+      isOOLoading: true,
       connected: false,
       connection: new Connection(ENDPOINT),
       client: undefined,
@@ -98,10 +104,13 @@ export const useFermiStore = create<FermiStore>()(
       set: (fn) => _set(produce(fn)),
       actions: {
         updateMarket: async (newMarketPda: string) => {
+          const client = get().client;
+          const set = get().set
           try {
+            set(state => {
+              state.isMarketLoading = true
+            } )
             console.group("Updating Market");
-            const set = get().set;
-            const client = get().client;
             if (!client) throw new Error("Client not initialized");
 
             const newMarket = await client.deserializeMarketAccount(
@@ -123,59 +132,69 @@ export const useFermiStore = create<FermiStore>()(
               new PublicKey(newMarket.eventHeap)
             );
 
-            let fillEvents: any = [];
-            let outEvents: any = [];
+            // let fillEvents: any = [];
+            // let outEvents: any = [];
 
-            if (eventHeap !== null) {
-              for (const node of eventHeap.nodes as any) {
-                if (node.event.eventType === 0) {
-                  const fillEvent: FillEvent =
-                    client.program.coder.types.decode(
-                      "FillEvent",
-                      Buffer.from([0, ...node.event.padding])
-                    );
-                  // console.log('FillEvent Details:',fillEvent);
-                  if (fillEvent.timestamp.toString() !== "0")
-                    fillEvents.push({
-                      ...fillEvent,
-                      maker: fillEvent.maker.toString(),
-                      makerClientOrderId:
-                        fillEvent.makerClientOrderId.toString(),
-                      makerTimestamp: fillEvent.makerTimestamp.toString(),
-                      price: fillEvent.price.toString(),
-                      quantity: fillEvent.quantity.toString(),
-                      seqNum: fillEvent.seqNum.toString(),
-                      taker: fillEvent.taker.toString(),
-                      takerClientOrderId:
-                        fillEvent.takerClientOrderId.toString(),
-                      takerSide: fillEvent.takerSide.toString(),
-                      timestamp: fillEvent.timestamp.toString(),
-                      pegLimit: fillEvent.pegLimit.toString(),
-                    });
-                  fillEvents.push(fillEvent);
-                } else {
-                  const outEvent: OutEvent = client.program.coder.types.decode(
-                    "OutEvent",
-                    Buffer.from([0, ...node.event.padding])
-                  );
-                  // console.log("out event",outEvent)
-                  if (outEvent.timestamp.toString() !== "0")
-                    outEvents.push(outEvent);
-                }
-              }
-            }
+            // if (eventHeap !== null) {
+            //   for (const node of eventHeap.nodes as any) {
+            //     if (node.event.eventType === 0) {
+            //       const fillEvent: FillEvent =
+            //         client.program.coder.types.decode(
+            //           "FillEvent",
+            //           Buffer.from([0, ...node.event.padding])
+            //         );
+            //       // console.log('FillEvent Details:',fillEvent);
+            //       // if (fillEvent.timestamp.toString() !== "0")
+            //       //   fillEvents.push({
+            //       //     ...fillEvent,
+            //       //     maker: fillEvent.maker.toString(),
+            //       //     makerClientOrderId:
+            //       //       fillEvent.makerClientOrderId.toString(),
+            //       //     makerTimestamp: fillEvent.makerTimestamp.toString(),
+            //       //     price: fillEvent.price.toString(),
+            //       //     quantity: fillEvent.quantity.toString(),
+            //       //     seqNum: fillEvent.seqNum.toString(),
+            //       //     taker: fillEvent.taker.toString(),
+            //       //     takerClientOrderId:
+            //       //       fillEvent.takerClientOrderId.toString(),
+            //       //     takerSide: fillEvent.takerSide.toString(),
+            //       //     timestamp: fillEvent.timestamp.toString(),
+            //       //     pegLimit: fillEvent.pegLimit.toString(),
+            //       //   });
+            //       fillEvents.push(fillEvent);
+            //     } else {
+            //       const outEvent: OutEvent = client.program.coder.types.decode(
+            //         "OutEvent",
+            //         Buffer.from([0, ...node.event.padding])
+            //       );
+            //       // console.log("out event",outEvent)
+            //       if (outEvent.timestamp.toString() !== "0")
+            //         outEvents.push(outEvent);
+            //     }
+            //   }
+            // }
 
             set((state) => {
               state.selectedMarket.publicKey = new PublicKey(newMarketPda);
               state.selectedMarket.current = newMarket;
               state.selectedMarket.bids = bids;
               state.selectedMarket.asks = asks;
-              state.selectedMarket.eventHeap = { fillEvents, outEvents };
+              state.selectedMarket.eventHeap = eventHeap;
             });
             console.log("Market Updated Successfully");
           } catch (err: any) {
             console.log("Error in updateSelectedMarket:", err?.message);
+            set((state) => {
+              state.selectedMarket.publicKey = undefined
+              state.selectedMarket.current = undefined
+              state.selectedMarket.bids = undefined
+              state.selectedMarket.asks = undefined
+              state.selectedMarket.eventHeap = undefined
+            });
           } finally {
+            set((state)=>{
+              state.isMarketLoading = false
+            })
             console.groupEnd();
           }
         },
@@ -185,6 +204,10 @@ export const useFermiStore = create<FermiStore>()(
         ) => {
           const set = get().set;
           const conn = connection || get().connection;
+          set(state => {
+            state.isClientLoading = true
+          })
+
           try {
             const provider = new AnchorProvider(
               conn,
@@ -201,13 +224,20 @@ export const useFermiStore = create<FermiStore>()(
             });
           } catch (e) {
             console.error("Error in connectClientWithWallet ", e);
+          } finally {
+            set(state => {
+              state.isClientLoading = false
+            })
           }
         },
         reloadMarket: async () => {
+          const set = get().set;
+          const client = get().client;
+          const currentMarket = get().selectedMarket.current;
+          set(state => {
+            state.isMarketLoading = true
+          })
           try {
-            const set = get().set;
-            const client = get().client;
-            const currentMarket = get().selectedMarket.current;
             if (!client) throw new Error("Client not initialized");
             if (!currentMarket) throw new Error("No market selected");
 
@@ -261,6 +291,11 @@ export const useFermiStore = create<FermiStore>()(
             console.log("Reloaded Market");
           } catch (err) {
             console.error("Error in reloadMarket:", err);
+            
+          } finally {
+            set(state => {
+              state.isMarketLoading = false
+            })
           }
         },
 
@@ -273,10 +308,13 @@ export const useFermiStore = create<FermiStore>()(
         },
 
         fetchOpenOrders: async () => {
+          const client = get().client;
+          const selectedMarketPk = get().selectedMarket.publicKey;
+          const set = get().set;
+          set(state => {
+            state.isOOLoading = true
+          })
           try {
-            const client = get().client;
-            const selectedMarketPk = get().selectedMarket.publicKey;
-            const set = get().set;
             if (!client || !selectedMarketPk)
               throw new Error("Client or Market not initialized");
             const openOrdersAccounts = await client.findOpenOrdersForMarket(
@@ -311,6 +349,15 @@ export const useFermiStore = create<FermiStore>()(
             });
           } catch (err) {
             console.error("Error in fetchOpenOrders:", err);
+            set(state => {
+              state.openOrders.publicKey = undefined
+              state.openOrders.current = undefined
+              state.openOrders.orders = undefined
+            })
+          }finally{
+            set(state => {
+              state.isOOLoading = false
+            })
           }
         },
       },

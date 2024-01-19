@@ -221,3 +221,23 @@ export const createAssociatedTokenAccount = async (
     await provider.sendAndConfirm(tx, []);
   };
   
+
+  export const fetchTokenBalance = async (
+    userPubKey: PublicKey,
+    mintPubKey: PublicKey,
+    connection: Connection
+  ) => {
+    try {
+      const associatedTokenAddress = await spl.getAssociatedTokenAddress(
+        mintPubKey,
+        userPubKey,
+        false
+      );
+      const account = await spl.getAccount(connection, associatedTokenAddress);
+  
+      return account?.amount.toString();
+    } catch (error) {
+      console.error("Error in fetchTokenBalance:", error);
+      throw error;
+    }
+  };

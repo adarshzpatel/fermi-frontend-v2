@@ -13,27 +13,16 @@ export type Market = {
 };
 
 
-// Market account: 86qoxwiEFMYrS4D8Me1ezBAi1MvCeJf5AJMXWMQVCjjy
-// Bids account: DUU6ePFexYcxqYSGUmk7sj6rySi2K8eTu9GudZRoKd92
-// Asks account: AXLdsAUsLALFsaXkvq2AkzyfbsS6NN3u7F4Fu53MBNho
-// Event heap account: BoTmSH6jjaFCdDYBStQ24X6tWCQ44DQMaxh6EeyNuoeQ
-// Quote mint: FNgLNFiNTXjx2USH5rtbEvJaoZfTkCfw2BrxZMxy15RK
-// Base mint: 5DfgCtxTrQmX5yd6eZufaLsW7HTVQd7cmaffHyQ7mENS
-// Quote lot size: 1000000
-// Base lot size: 1000000000
-
-
-
 export const MARKETS: Market[] = [
   {
     name:'TONK/USDC',
-    marketPda: "3MwFEfjmksCxWBYM85t1TS51ofs31oa5hgcWBP877Abu",
+    marketPda: "ikFtY4ZDuitei7tsjQf1B8m47XEe2F4XjVgBLieifQv",
     quoteTokenName: "USDC",
     baseTokenName: "BONK",
   },
   {
     name:'SUNK/USDC',
-    marketPda: "HArwtuQcLpQdK5zA16Q8nBxuKRPvWuU3Bt8dQpxQxXeT",
+    marketPda: "Hzzd2TJijM16r2yK8ktnXWF3NDJvJyGSixKV4ykLgV1Z",
     quoteTokenName: "USDC",
     baseTokenName: "BONK",
   },
