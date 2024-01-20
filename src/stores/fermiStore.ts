@@ -42,7 +42,7 @@ type FermiStore = {
   };
   actions: {
     updateConnection: (url: string) => void;
-    updateMarket: (newMarketPda: string) => Promise<void>;
+    updateMarket: (newMarket: string) => Promise<void>;
     reloadMarket: () => void;
     connectClientWithWallet: (
       wallet: AnchorWallet,
@@ -80,8 +80,8 @@ const emptyWallet = new EmptyWallet(Keypair.generate());
 export const useFermiStore = create<FermiStore>()(
   subscribeWithSelector((_set, get) => {
     return {
-      isClientLoading: true,
-      isMarketLoading: true,
+      isClientLoading: false,
+      isMarketLoading: false,
       isOOLoading: true,
       connected: false,
       connection: new Connection(ENDPOINT),
@@ -180,6 +180,7 @@ export const useFermiStore = create<FermiStore>()(
               state.selectedMarket.bids = bids;
               state.selectedMarket.asks = asks;
               state.selectedMarket.eventHeap = eventHeap;
+              state.isMarketLoading = false
             });
             console.log("Market Updated Successfully");
           } catch (err: any) {
@@ -190,11 +191,9 @@ export const useFermiStore = create<FermiStore>()(
               state.selectedMarket.bids = undefined
               state.selectedMarket.asks = undefined
               state.selectedMarket.eventHeap = undefined
+              state.isMarketLoading = false
             });
           } finally {
-            set((state)=>{
-              state.isMarketLoading = false
-            })
             console.groupEnd();
           }
         },

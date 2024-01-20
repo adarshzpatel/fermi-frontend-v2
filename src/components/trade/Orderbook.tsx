@@ -10,7 +10,7 @@ type OrderRowProps = {
 
 const SkeletonRow = () => {
   return (
-    <div className="h-4 bg-gray-100/10 mb-1 rounded-sm animate-pulse w-full pb-1"></div>
+    <div className="h-4  bg-gray-100/20 mb-1 rounded-sm animate-pulse w-full "></div>
   );
 };
 
@@ -24,7 +24,6 @@ const AskRow = ({ price, qty }: OrderRowProps) => {
 };
 
 const BidRow = ({ price, qty }: OrderRowProps) => {
-
   return (
     <div className="flex pl-4 pr-2 text-green-500 justify-between items-center font-medium">
       <span>{price}</span>
@@ -35,13 +34,9 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 
 const Orderbook = () => {
   const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  const isMarketLoading = useFermiStore((state) => state.isMarketLoading);
   const { asks, bids } = selectedMarket;
 
-
-  useEffect(()=>{
-
-    console.log({asks,bids})
-  },[])
   return (
     <>
       <div className="p-4 pb-0">
@@ -56,25 +51,33 @@ const Orderbook = () => {
         {/* Bids Column */}
         <div>
           <div className="bg-green-900/10">
-            {bids?.map((item) => (
-              <BidRow
-                price={(new BN(item?.key).shrn(64)).toString()}
-                qty={item?.quantity?.toString()}
-                key={`bid-${item?.clientOrderId?.toString()}`}
-              />
-            ))}
+            {isMarketLoading
+              ? [0, 1, 2,3,4,5,6].map((item) => (
+                  <SkeletonRow key={"bids-skeleton" + item} />
+                ))
+              : bids?.map((item) => (
+                  <BidRow
+                    price={new BN(item?.key).shrn(64).toString()}
+                    qty={item?.quantity?.toString()}
+                    key={`bid-${item?.clientOrderId?.toString()}`}
+                  />
+                ))}
           </div>
           {/* Asks column */}
         </div>
         <div>
           <div className="bg-red-900/10">
-            {asks?.map((item) => (
-              <AskRow
-              price={(new BN(item?.key).shrn(64)).toString()}
-                qty={item?.quantity?.toString()}
-                key={`ask-${item?.clientOrderId?.toString()}`}
-              />
-            ))}
+            {isMarketLoading
+              ? [0, 1, 2,3,4,5,6].map((item) => (
+                  <SkeletonRow key={"asks-skeleton" + item} />
+                ))
+              : asks?.map((item) => (
+                  <AskRow
+                    price={new BN(item?.key).shrn(64).toString()}
+                    qty={item?.quantity?.toString()}
+                    key={`ask-${item?.clientOrderId?.toString()}`}
+                  />
+                ))}
           </div>
         </div>
       </div>

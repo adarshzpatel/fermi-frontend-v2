@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 import { MARKETS, PROGRAM_ID } from "@/solana/config";
 import { Commitment, PublicKey } from "@solana/web3.js";
 import { ClientRequest } from "http";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { setAutoFreeze } from "immer";
 import { Spinner, useDisclosure } from "@nextui-org/react";
 import CreateOpenOrdersAccountModal from "@/components/trade/CreateOpenOrdersAccountModal";
@@ -34,26 +34,29 @@ const opts = {
 
 const TradePage = () => {
   const searchParams = useSearchParams();
+  const marketPdaParam = searchParams.get("market")
   const {
     isOpen: isCreateOOModalOpen,
     onOpen: openCreateOOModal,
     onClose: closeCreateOOModal,
     onOpenChange: onCreateOOModalOpenChange,
   } = useDisclosure({ id: "create-oo-modal" });
-  const marketPdaParam = searchParams.get("market");
   const set = useFermiStore(state => state.set)
+  const router = useRouter()
+  const pathname = usePathname()
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
   const isClientLoading = useFermiStore(state => state.isClientLoading)
-  const isMarketLoading = useFermiStore(state => state.isMarketLoading)
-  const fetchOpenOrders = useFermiStore(state => state.actions.fetchOpenOrders)
-
+  const updateMarket = useFermiStore(state => state.actions.updateMarket)
 
   const initialise = async () => {
-    console.group("INIT FERMI CLIENT")
+    if(marketPdaParam === null){
+      router.replace(`${pathname}?market=${MARKETS[0].marketPda}`)
+      return
+    }
     set(state => {
       state.isClientLoading = true
-      state.isMarketLoading = true
+
     })
     try {
       if (!connection) throw new Error("No connection found ");
@@ -77,56 +80,20 @@ const TradePage = () => {
         state.isClientLoading = false
       });
 
-      console.log("Client initialized");
-      console.log("Fetching market")
-      let marketPubKey: PublicKey;
-      if (marketPdaParam) {
-        marketPubKey = new PublicKey(marketPdaParam);
-      } else {
-        marketPubKey = new PublicKey(MARKETS[0].marketPda);
-      }
-      const market = await client.deserializeMarketAccount(marketPubKey);
-      if(!market) throw new Error("Market not found")
+      console.log("Client initialized");    
 
-      const bidsAccount = await client.deserializeBookSide(
-        market.bids
-      );
+      await updateMarket(marketPdaParam)
 
-      const bids = bidsAccount && client.getLeafNodes(bidsAccount);
-      const asksAccount = await client.deserializeBookSide(
-        market.asks
-      );
-
-      const asks = asksAccount && client.getLeafNodes(asksAccount);
-      const eventHeapAccount = await client.deserializeEventHeapAccount(
-        market.eventHeap
-      );
-      
-      const eventHeap = eventHeapAccount && eventHeapAccount.nodes;
-
-      set((state) => {
-        state.selectedMarket.publicKey = new PublicKey(marketPubKey);
-        state.selectedMarket.current = market;
-        state.selectedMarket.bids = bids;
-        state.selectedMarket.asks = asks;
-        state.selectedMarket.eventHeap = eventHeap;
-        state.isMarketLoading = false
-      });
-
-      console.log("Market initialised")
-
-      await fetchOpenOrders()
-    
     } catch (err) {
       console.error("Failed to initialise : ", err);
     } finally {
-     
+     console.groupEnd()
     }
   };
 
   useEffect(() => {
      initialise();
-  }, [connectedWallet]);
+  }, []);
 
   if (isClientLoading) {
     return (

@@ -11,10 +11,14 @@ const MarketSelector = () => {
   const pathname = usePathname();
   const updateMarket = useFermiStore((state) => state.actions.updateMarket);
   const [selectedKeys, setSelectedKeys] = useState([MARKETS[0].marketPda]);
+  const isMarketLoading = useFermiStore((state) => state.isMarketLoading);
   const client = useFermiStore(state => state.client)
-  const selectedMarketPk = useFermiStore(state => state.selectedMarket.publicKey)
+  const selectedMarketPk = useFermiStore(
+    (state) => state.selectedMarket.publicKey
+  );
 
   const changeMarket = async (marketPda: string) => {
+    console.log("Changing market to",marketPda)
     const params = new URLSearchParams(searchParams);
     params.set("market", marketPda);
     replace(`${pathname}?${params.toString()}`);
@@ -22,26 +26,15 @@ const MarketSelector = () => {
     if (knownMarket) {
       setSelectedKeys([marketPda]);
       await updateMarket(knownMarket.marketPda);
-    } else {
-      setSelectedKeys(["Unknown"]);
-      await updateMarket(marketPda)
-    }
+    } 
   };
 
-  useEffect(() => {
-    // If market not defined sin url, set it to first market
-    if (!marketPdaParam) {
-      changeMarket(MARKETS[0].marketPda);
-    } else {
-      if(marketPdaParam === selectedMarketPk?.toString()) return 
-      changeMarket(marketPdaParam)
-    }
-  }, [marketPdaParam]);
-  
-  const onSelectionChange = (key:Selection) => {
+
+  const onSelectionChange = (key: Selection) => {
     // change market when change
+  
     const marketPubKey = Array.from(key)[0];
-    changeMarket(marketPubKey as string)
+    changeMarket(marketPubKey as string);
   };
 
   return (
@@ -59,6 +52,7 @@ const MarketSelector = () => {
       multiple={false}
       selectedKeys={selectedKeys}
       onSelectionChange={onSelectionChange}
+      isLoading={isMarketLoading}
     >
       {MARKETS.map((m) => (
         <SelectItem
@@ -70,15 +64,7 @@ const MarketSelector = () => {
           {m.name}
         </SelectItem>
       ))}
-      <SelectItem
-      aria-label="Unknown Market"
-      key={"Unknown"}
-      value={"Unknown"}
-      textValue="Unknown"
-      hidden
-      > 
-      Unknown
-      </SelectItem>
+
     </Select>
   );
 };

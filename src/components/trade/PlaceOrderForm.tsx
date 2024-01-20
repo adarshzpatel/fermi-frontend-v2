@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import {
   Button,
   Input,
@@ -9,7 +9,7 @@ import {
   useDisclosure,
 } from "@nextui-org/react";
 import toast from "react-hot-toast";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
+
 import { useFermiStore } from "@/stores/fermiStore";
 import { NumericFormat } from "react-number-format";
 import {
@@ -19,9 +19,9 @@ import {
 import { PlaceOrderArgs } from "@/solana/fermiClient";
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import useProvider from "@/hooks/useProvider";
+
 import CreateOpenOrdersAccountModal from "./CreateOpenOrdersAccountModal";
-import crypto from "crypto";
+
 
 export enum SideType {
   Buy = "buy",
@@ -40,6 +40,14 @@ export const DEFAULT_TRADE_FORM: TradeForm = {
   size: "",
 };
 
+
+function getUID(price,size) {
+  // Get the timestamp and convert 
+  // it into alphanumeric input
+  return price + Date.now().toString(36) + size;
+
+}
+
 const PlaceOrder = () => {
   const [formData, setFormData] = useState<TradeForm>(DEFAULT_TRADE_FORM);
   const [processing, setProcessing] = useState(false);
@@ -49,57 +57,46 @@ const PlaceOrder = () => {
     onClose: closeCreateOOModal,
     onOpenChange: onCreateOOModalOpenChange,
   } = useDisclosure({ id: "create-oo-modal" });
-  const connectedWallet = useAnchorWallet();  
 
-  const {client,openOrders,selectedMarket,actions:{reloadMarket,fetchOpenOrders}} = useFermiStore()
-  const provider = useProvider();
+  const client = useFermiStore((state) => state.client);
+  const openOrdersPublicKey = useFermiStore(
+    (state) => state.openOrders.publicKey
+  );
+  const reloadMarket = useFermiStore((state) => state.actions.reloadMarket);
+  const fetchOpenOrders = useFermiStore(
+    (state) => state.actions.fetchOpenOrders
+  );
+  const selectedMarket = useFermiStore((state) => state.selectedMarket);
+  const clientOrderId = useId()
 
-  const generateUniqueClientOrderId = (
-    _walletPubKey: string,
-    _marketPubKey: string
-  ) => {
-    // Concatenate the values
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[-T:]/g, "")
-      .split(".")[0];
-    const concatenatedValues = `${_walletPubKey}${_marketPubKey}${timestamp}`;
-
-    const uniqueId = crypto
-      .createHash("sha256")
-      .update(concatenatedValues)
-      .digest("hex");
-
-    return uniqueId;
-  };
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setProcessing(true);
+    // setProcessing(true);
+    console.log(getUID(formData.price,formData.size))
+    return
     try {
-      if(!formData.price || !formData.size) throw new Error("Please enter price and size")
-      if (!connectedWallet?.publicKey) {
-        toast.error("Please connect your wallet");
-        throw new Error("Please connect your wallet");
-      }
-      if (!provider) throw new Error("Provider not found");
+      if (!formData.price || !formData.size)
+        throw new Error("Please enter price and size");
       if (!client) throw new Error("Client not initialized");
-      if (!selectedMarket.publicKey) throw new Error("Market not selected");
+      if (!selectedMarket) throw new Error("Market not selected");
 
-      const {publicKey:marketPublicKey, current:market} = selectedMarket
-      const openOrdersPublicKey = openOrders.publicKey;
-
-      if (!market) throw new Error("Market not found");
+      const { publicKey: marketPublicKey, current: market } = selectedMarket;
+      if (!market || !marketPublicKey) throw new Error("Market not found");
 
       if (!openOrdersPublicKey) {
-        openCreateOOModal()
-        return 
-      }     
-
+        openCreateOOModal();
+        return;
+      }
 
       const { side, price, size } = formData;
-      const clientOrderId = openOrders.orders ? new BN(openOrders.orders.length + 1) : new BN(generateUniqueClientOrderId(client.walletPk.toString(),marketPublicKey.toString()))
-      console.log(clientOrderId.toString())
-
+      const clientOrderId = new BN(
+        generateUniqueClientOrderId(
+          client.walletPk.toString(),
+          marketPublicKey.toString()
+        )
+      );
+      console.log(clientOrderId.toString());
+      return
       const orderArgs: PlaceOrderArgs = {
         side: side === SideType.Buy ? Side.Bid : Side.Ask,
         priceLots: new BN(price),
@@ -112,7 +109,6 @@ const PlaceOrder = () => {
         limit: 5,
       };
 
-
       const marketAuthorityPDA = market?.marketAuthority;
 
       let userTokenAccount;
@@ -122,18 +118,18 @@ const PlaceOrder = () => {
         // Get Quote Mint Token
         userTokenAccount = new PublicKey(
           await checkOrCreateAssociatedTokenAccount(
-            provider,
+            client.provider,
             market?.quoteMint,
-            connectedWallet.publicKey
+            client.walletPk
           )
         );
       } else {
         // Get Base Mint Token
         userTokenAccount = new PublicKey(
           await checkOrCreateAssociatedTokenAccount(
-            provider,
-            market?.baseMint,
-            connectedWallet.publicKey
+            client.provider,
+            market?.quoteMint,
+            client.walletPk
           )
         );
       }
@@ -155,10 +151,10 @@ const PlaceOrder = () => {
 
       toast.success("Order placed successfully");
       reloadMarket();
-      fetchOpenOrders()
+      fetchOpenOrders();
     } catch (err: any) {
       const message = err?.message || "Failed to place order";
-      toast.error(message)
+      toast.error(message);
       console.error("Error in placeOrder:", err);
     } finally {
       setFormData(DEFAULT_TRADE_FORM);
@@ -214,7 +210,7 @@ const PlaceOrder = () => {
             customInput={Input}
             label="Price"
             required
-            disabled={processing}
+            isDisabled={processing}
             radius="none"
             variant="faded"
             onValueChange={(values) => {
@@ -232,7 +228,7 @@ const PlaceOrder = () => {
             customInput={Input}
             label="Size"
             required
-            disabled={processing}
+            isDisabled={processing}
             radius="none"
             variant="faded"
             onValueChange={(values) => {
