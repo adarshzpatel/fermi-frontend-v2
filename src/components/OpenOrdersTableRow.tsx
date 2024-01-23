@@ -1,20 +1,47 @@
 import { useFermiStore } from "@/stores/fermiStore";
+import { BN } from "@coral-xyz/anchor";
 import { Button } from "@nextui-org/react";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useState } from "react";
 
-const OpenOrdersTableRow = ({ id, clientId, lockedPrice }) => {
-  const cancelOrderById = useFermiStore(state => state.actions.cancelOrderById)
-  const [isCancelling,setIsCancelling] = useState(false)
-  const [isFinalising,setIsFinalising] = useState(false)
-  
+type OpenOrdersTableRowProps = {
+  id: string;
+  clientId: string;
+  lockedPrice: string;
+  finaliseEvent: any ;
+};
+const OpenOrdersTableRow = ({
+  id,
+  clientId,
+  lockedPrice,
+  finaliseEvent,
+}) => {
+  const cancelOrderById = useFermiStore(
+    (state) => state.actions.cancelOrderById
+  );
+  const finalise = useFermiStore(state => state.actions.finalise)
+  const connectedWallet = useAnchorWallet()
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isFinalising, setIsFinalising] = useState(false);
+
   const handleFinalise = async () => {
-    console.log("Trying to finalise",id)
+    try{
+      if(!finaliseEvent || !connectedWallet) return
+      setIsFinalising(true)
+      console.log(JSON.stringify(finaliseEvent))
+      console.log("Trying to finalise", id); 
+      await finalise(finaliseEvent.maker,finaliseEvent.taker,new BN(finaliseEvent.makerSlot))
+    } catch(err){
+      console.log(err)
+    } finally{
+      setIsFinalising(false)
+    }
   };
-  
+
   const handleCancel = async () => {
-    setIsCancelling(true)
-    await cancelOrderById(id)
-    setIsCancelling(false)
+    setIsCancelling(true);
+    await cancelOrderById(id);
+    setIsCancelling(false);
   };
 
   return (
@@ -23,15 +50,17 @@ const OpenOrdersTableRow = ({ id, clientId, lockedPrice }) => {
       <td className="text-center p-3">{clientId}</td>
       <td className="text-center p-3">{lockedPrice}</td>
       <td className="flex items-center p-3 justify-end gap-4">
-        <Button
-          onClick={handleFinalise}
-          isLoading={isFinalising}
-          isDisabled={isCancelling}
-          radius="none"
-          variant="ghost"
-        >
-          Finalise
-        </Button>
+        {finaliseEvent && (
+          <Button
+            onClick={handleFinalise}
+            isLoading={isFinalising}
+            isDisabled={isCancelling}
+            radius="none"
+            variant="ghost"
+          >
+            Finalise
+          </Button>
+        )}
 
         <Button
           onClick={handleCancel}
@@ -39,7 +68,6 @@ const OpenOrdersTableRow = ({ id, clientId, lockedPrice }) => {
           isDisabled={isFinalising}
           radius="none"
           variant="ghost"
-          
         >
           Cancel
         </Button>
@@ -48,4 +76,4 @@ const OpenOrdersTableRow = ({ id, clientId, lockedPrice }) => {
   );
 };
 
-export default OpenOrdersTableRow
+export default OpenOrdersTableRow;

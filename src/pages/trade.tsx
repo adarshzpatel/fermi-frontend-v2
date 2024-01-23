@@ -89,7 +89,9 @@ const TradePage = () => {
   };
 
   useEffect(() => {
-     initialise();
+    if(connectedWallet && connection){
+      initialise();
+    }
   }, [connectedWallet,connection]);
 
   if (isClientLoading) {
@@ -133,12 +135,10 @@ const TradePage = () => {
             </div>
           </div>
           <div className="flex-1 style-card ">
-            <Orderbook />
-
+          <Orderbook />
           </div>
         </div>
       </div>
-    
     </Layout>
   );
 };

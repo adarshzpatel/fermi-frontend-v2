@@ -2,7 +2,9 @@ import { Button, useDisclosure } from "@nextui-org/react";
 import CreateOpenOrdersAccountModal from "./trade/CreateOpenOrdersAccountModal";
 import { useFermiStore } from "@/stores/fermiStore";
 import OpenOrdersTableRow from "./OpenOrdersTableRow";
-
+import { useEffect, useMemo } from "react";
+import { eventNames } from "process";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 
 const OpenOrdersTable = () => {
   const {
@@ -13,6 +15,22 @@ const OpenOrdersTable = () => {
   } = useDisclosure({ id: "create-oo-modal" });
   const isOpenOrdersLoading = useFermiStore((state) => state.isOOLoading);
   const openOrders = useFermiStore((state) => state.openOrders);
+  const eventHeap = useFermiStore((state) => state.selectedMarket.eventHeap);
+  
+  const canFinalise = useMemo(() => {
+    let map:{[x:string]:any} = {}
+    openOrders?.orders?.forEach((order) => {
+      const match = eventHeap.find(
+        (event) => event.makerClientOrderId.toString() === order.clientId
+      )
+      map[order.clientId] = match
+    });
+    return map;
+  }, [openOrders, eventHeap]);
+  
+  useEffect(() => {
+    console.log(canFinalise)
+  }, [canFinalise]);
 
   if (isOpenOrdersLoading) {
     return (
@@ -39,17 +57,8 @@ const OpenOrdersTable = () => {
     );
   }
 
-  const cancelAllOrders = () => {
-    try {
-    } catch (err) {
-      console.error("Err", err);
-    } finally {
-    }
-  };
-
   return (
     <div>
-      
       <table className="w-full mt-2 table-auto border-1 border-default-200">
         <thead className="bg-default-200/75 text-sm text-default-600 h-10">
           <tr>
@@ -63,7 +72,7 @@ const OpenOrdersTable = () => {
         <tbody className="text-sm ">
           {/* Coin */}
           {openOrders.orders?.map((order, i) => (
-            <OpenOrdersTableRow {...order} key={"oo-"+order.id} />
+            <OpenOrdersTableRow {...order} finaliseEvent={canFinalise[order.clientId]} key={"oo-" + order.id} />
           ))}
         </tbody>
       </table>

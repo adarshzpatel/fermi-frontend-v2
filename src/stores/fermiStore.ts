@@ -18,6 +18,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 
 import EmptyWallet from "@/solana/utils/emptyWallet";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
+import { checkOrCreateAssociatedTokenAccount } from "@/solana/utils/helpers";
 
 type FermiStore = {
   isClientLoading: boolean;
@@ -37,20 +38,20 @@ type FermiStore = {
     current: MarketAccount | undefined;
     bids: LeafNode[] | null | undefined;
     asks: LeafNode[] | null | undefined;
-    eventHeap: EventHeapAccount | unknown;
+    eventHeap: any | undefined;
     openOrdersAccount: OpenOrdersAccount | null;
   };
   actions: {
     updateConnection: (url: string) => void;
     updateMarket: (newMarket: string) => Promise<void>;
-    reloadMarket: () => void;
+    reloadMarket: () => Promise<void>;
     connectClientWithWallet: (
       wallet: AnchorWallet,
       connection?: Connection
     ) => void;
     fetchOpenOrders: () => Promise<void>;
     cancelOrderById: (id: string) => Promise<void>;
-    finalise: () => Promise<void>;
+    finalise: (maker:PublicKey,taker:PublicKey,slotsToConsume:BN) => Promise<void>;
   };
 };
 
@@ -129,51 +130,12 @@ export const useFermiStore = create<FermiStore>()(
             );
 
             const asks = asksAccount && client.getLeafNodes(asksAccount);
-            const eventHeap = await client.deserializeEventHeapAccount(
+  
+
+            const eventHeapAccount = await client.deserializeEventHeapAccount(
               new PublicKey(newMarket.eventHeap)
             );
-
-            // let fillEvents: any = [];
-            // let outEvents: any = [];
-
-            // if (eventHeap !== null) {
-            //   for (const node of eventHeap.nodes as any) {
-            //     if (node.event.eventType === 0) {
-            //       const fillEvent: FillEvent =
-            //         client.program.coder.types.decode(
-            //           "FillEvent",
-            //           Buffer.from([0, ...node.event.padding])
-            //         );
-            //       // console.log('FillEvent Details:',fillEvent);
-            //       // if (fillEvent.timestamp.toString() !== "0")
-            //       //   fillEvents.push({
-            //       //     ...fillEvent,
-            //       //     maker: fillEvent.maker.toString(),
-            //       //     makerClientOrderId:
-            //       //       fillEvent.makerClientOrderId.toString(),
-            //       //     makerTimestamp: fillEvent.makerTimestamp.toString(),
-            //       //     price: fillEvent.price.toString(),
-            //       //     quantity: fillEvent.quantity.toString(),
-            //       //     seqNum: fillEvent.seqNum.toString(),
-            //       //     taker: fillEvent.taker.toString(),
-            //       //     takerClientOrderId:
-            //       //       fillEvent.takerClientOrderId.toString(),
-            //       //     takerSide: fillEvent.takerSide.toString(),
-            //       //     timestamp: fillEvent.timestamp.toString(),
-            //       //     pegLimit: fillEvent.pegLimit.toString(),
-            //       //   });
-            //       fillEvents.push(fillEvent);
-            //     } else {
-            //       const outEvent: OutEvent = client.program.coder.types.decode(
-            //         "OutEvent",
-            //         Buffer.from([0, ...node.event.padding])
-            //       );
-            //       // console.log("out event",outEvent)
-            //       if (outEvent.timestamp.toString() !== "0")
-            //         outEvents.push(outEvent);
-            //     }
-            //   }
-            // }
+            const eventHeap = eventHeapAccount && parseEventHeap(client,eventHeapAccount);
 
             set((state) => {
               state.selectedMarket.publicKey = new PublicKey(newMarketPda);
@@ -246,38 +208,13 @@ export const useFermiStore = create<FermiStore>()(
             const asksAccount = await client.deserializeBookSide(
               new PublicKey(currentMarket.asks)
             );
-            bids?.forEach((it) => {
-              return {
-                ...it,
-                clientOrderId: it.clientOrderId.toString(),
-                price: new BN(it?.key).shrn(64).toString(),
-                key: it?.key.toString(),
-                owner: it.owner.toString(),
-                timeStamp: it.timestamp.tosString(),
 
-                pegLimit: it.pegLimit.toString(),
-                quantity: it.owner.toString(),
-                ownerSlot: it.ownerSlot.toString(),
-              };
-            });
             const asks = asksAccount && client.getLeafNodes(asksAccount);
-            asks?.forEach((it) => {
-              return {
-                ...it,
-                clientOrderId: it.clientOrderId.toString(),
-                price: new BN(it?.key).shrn(64).toString(),
-                key: it?.key.toString(),
-                owner: it.owner.toString(),
-                timeStamp: it.timestamp.tosString(),
-                pegLimit: it.pegLimit.toString(),
-                quantity: it.owner.toString(),
-                ownerSlot: it.ownerSlot.toString(),
-              };
-            });
+
             const eventHeapAccount = await client.deserializeEventHeapAccount(
               new PublicKey(currentMarket.eventHeap)
             );
-            const eventHeap = eventHeapAccount && eventHeapAccount.nodes;
+            const eventHeap = eventHeapAccount && parseEventHeap(client,eventHeapAccount);
 
             set((state) => {
               state.selectedMarket.current = currentMarket;
@@ -297,24 +234,21 @@ export const useFermiStore = create<FermiStore>()(
             state.connection = new Connection(url);
           });
         },
-        finalise: async (maker:PublicKey,makerAtaPublicKey:PublicKey,takerAtaPublicKey:PublicKey,slotsToConsume:BN) => {
+        finalise: async (maker,taker,slotsToConsume:BN) => {
           const client = get().client
           const market = get().selectedMarket.current
           if(!client) throw new Error("Client not found")
           if(!market) throw new Error("No market found!")
           const marketPublicKey = get().selectedMarket.publicKey
           if(!marketPublicKey) throw new Error("No market found!")
-          
 
-          // marketPublicKey: PublicKey,
-          // marketAuthority: PublicKey,
-          // eventHeapPublicKey: PublicKey,
-          // makerAtaPublicKey: PublicKey,
-          // takerAtaPublicKey: PublicKey,
-          // marketVaultBasePublicKey: PublicKey,
-          // marketVaultQuotePublicKey: PublicKey,
-          // maker: PublicKey,
-          // slotsToConsume: BN
+          const ooMaker = await client.deserializeOpenOrderAccount(maker)
+          const ooTaker = await client.deserializeOpenOrderAccount(taker)
+          console.log(ooMaker?.owner.toString())
+          console.log(ooTaker?.owner.toString())
+          if(!ooMaker || !ooTaker) throw new Error("Open orders not found")
+          const makerAtaPublicKey = new PublicKey(await checkOrCreateAssociatedTokenAccount(client.provider, market.quoteMint, ooMaker?.owner));
+          const takerAtaPublicKey = new PublicKey(await checkOrCreateAssociatedTokenAccount(client.provider, market.quoteMint, ooTaker?.owner));
 
           const [ix, signers] = await client.createFinalizeEventsInstruction(
             marketPublicKey,
@@ -327,12 +261,10 @@ export const useFermiStore = create<FermiStore>()(
             maker,
             slotsToConsume
           );
-          
-          await client.sendAndConfirmTransaction([ix], {
-            additionalSigners: signers,
-          });
-          
-          
+
+          await client.sendAndConfirmTransaction([ix],{additionalSigners:signers});
+
+
         },
         cancelOrderById: async (id: string) => {
           console.group("Cancelling All orders");
@@ -351,10 +283,10 @@ export const useFermiStore = create<FermiStore>()(
             orderId
           );
           await client.sendAndConfirmTransaction([ix]);
-          get().actions.fetchOpenOrders();
-          get().actions.reloadMarket();
+          await get().actions.fetchOpenOrders();
+          await get().actions.reloadMarket();
         },
-        fetchOpenOrders: async () => {
+        fetchOpenOrders: async (reloadMarket: boolean = false) => {
           console.log("fetching open orders");
           const client = get().client;
           const selectedMarketPk = get().selectedMarket.publicKey;
@@ -389,13 +321,14 @@ export const useFermiStore = create<FermiStore>()(
                 id: i.id.toString(),
               }));
             }
-
+            console.log("openOrdersAccount", orders);
             console.log("Fetched open orders Successfully");
             set((state) => {
               state.openOrders.publicKey = openOrdersAccountPk;
               state.openOrders.current = openOrdersAccount;
               state.openOrders.orders = orders;
             });
+            if (reloadMarket) get().actions.reloadMarket();
           } catch (err) {
             console.error("Error in fetchOpenOrders:", err);
             set((state) => {
@@ -417,3 +350,45 @@ export const useFermiStore = create<FermiStore>()(
 export const openOrdersSelector = (state: FermiStore) => state.openOrders;
 export const selectedMarketSelector = (state: FermiStore) =>
   state.selectedMarket;
+
+export const parseEventHeap = (
+  client: OpenBookV2Client,
+  eventHeap: EventHeapAccount | null
+) => {
+  if (eventHeap == null) throw new Error("Event Heap not found");
+  let fillEvents: any = [];
+  // let outEvents: any = [];
+
+  if (eventHeap !== null) {
+    for (const node of eventHeap.nodes as any) {
+      if (node.event.eventType === 0) {
+        const fillEvent: FillEvent = client.program.coder.types.decode(
+          "FillEvent",
+          Buffer.from([0, ...node.event.padding])
+        );
+
+        if (fillEvent.timestamp.toString() !== "0") {
+          fillEvents.push({
+            ...fillEvent,
+            // maker: fillEvent.maker.toString(),
+            // taker: fillEvent.taker.toString(),
+            // price: fillEvent.price.toString(),
+            // quantity: fillEvent.quantity.toString(),
+            // makerClientOrderId: fillEvent.makerClientOrderId.toString(),
+            // takerClientOrderId: fillEvent.takerClientOrderId.toString(),
+          });
+        }
+      }
+      // else {
+      // NOT RELEVANT FOR NOW
+      // const outEvent: OutEvent = client.program.coder.types.decode(
+      //   "OutEvent",
+      //   Buffer.from([0, ...node.event.padding])
+      // );
+      // if (outEvent.timestamp.toString() !== "0") outEvents.push(outEvent);
+      // }
+    }
+  }
+
+  return  fillEvents ;
+};

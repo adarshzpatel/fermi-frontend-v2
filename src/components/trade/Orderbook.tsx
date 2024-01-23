@@ -1,6 +1,7 @@
-import { useFermiStore } from "@/stores/fermiStore";
+import { parseEventHeap, useFermiStore } from "@/stores/fermiStore";
 import { BN } from "@coral-xyz/anchor";
-import { useEffect, useState } from "react";
+import { Button } from "@nextui-org/react";
+import { useEffect } from "react";
 
 // ORDERBOOK
 type OrderRowProps = {
@@ -34,8 +35,8 @@ const BidRow = ({ price, qty }: OrderRowProps) => {
 
 const Orderbook = () => {
   const selectedMarket = useFermiStore((state) => state.selectedMarket);
-  const isMarketLoading = useFermiStore((state) => state.isMarketLoading);
-  const { asks, bids } = selectedMarket;
+  const isMarketLoading = useFermiStore((state) => state.isMarketLoading);  
+  const { asks, bids} = selectedMarket;
 
   return (
     <>
@@ -55,11 +56,12 @@ const Orderbook = () => {
               ? [0, 1, 2,3,4,5,6].map((item) => (
                   <SkeletonRow key={"bids-skeleton" + item} />
                 ))
+
               : bids?.map((item) => (
                   <BidRow
                     price={new BN(item?.key).shrn(64).toString()}
                     qty={item?.quantity?.toString()}
-                    key={`bid-${item?.clientOrderId?.toString()}`}
+                    key={`bid-${item?.clientOrderId?.toString()+item?.key.toString().slice(0,5) }`}
                   />
                 ))}
           </div>

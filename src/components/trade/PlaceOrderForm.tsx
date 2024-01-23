@@ -41,10 +41,6 @@ export const DEFAULT_TRADE_FORM: TradeForm = {
 };
 
 
-function getUID(price,size) {
-  return price + Date.now().toString(36) + size;
-
-}
 
 const PlaceOrder = () => {
   const [formData, setFormData] = useState<TradeForm>(DEFAULT_TRADE_FORM);
@@ -55,10 +51,9 @@ const PlaceOrder = () => {
     onClose: closeCreateOOModal,
     onOpenChange: onCreateOOModalOpenChange,
   } = useDisclosure({ id: "create-oo-modal" });
-
   const client = useFermiStore((state) => state.client);
-  const openOrdersPublicKey = useFermiStore(
-    (state) => state.openOrders.publicKey
+  const {publicKey:openOrdersPublicKey,orders} = useFermiStore(
+    (state) => state.openOrders
   );
   const reloadMarket = useFermiStore((state) => state.actions.reloadMarket);
   const fetchOpenOrders = useFermiStore(
@@ -67,6 +62,7 @@ const PlaceOrder = () => {
   const selectedMarket = useFermiStore((state) => state.selectedMarket);
 
 
+  
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setProcessing(true);
@@ -85,8 +81,8 @@ const PlaceOrder = () => {
       }
 
       const { side, price, size } = formData;
-
-      const clientOrderId = new BN(getUID(price,size))
+      if(orders == undefined) throw new Error("Orders not found")
+      const clientOrderId = new BN(orders.length + 1)
       console.log({price,size,side,clientOrderId})
       const orderArgs: PlaceOrderArgs = {
         side: side === SideType.Buy ? Side.Bid : Side.Ask,
@@ -119,7 +115,7 @@ const PlaceOrder = () => {
         userTokenAccount = new PublicKey(
           await checkOrCreateAssociatedTokenAccount(
             client.provider,
-            market?.quoteMint,
+            market?.baseMint,
             client.walletPk
           )
         );
@@ -168,6 +164,7 @@ const PlaceOrder = () => {
           }
           color={formData.side === SideType.Buy ? "primary" : "danger"}
           radius="none"
+          selectedKey={formData.side}
           className=" font-medium"
           fullWidth
         >

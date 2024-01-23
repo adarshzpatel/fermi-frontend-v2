@@ -1025,6 +1025,7 @@ export class OpenBookV2Client {
       // tokenProgram: tokenProgramPublicKey,
       // Add other accounts as required by the instruction
     };
+    console.log(JSON.stringify(accounts,null,2))
 
     const ix = await this.program.methods
       .atomicFinalizeEvents(slotsToConsume)
