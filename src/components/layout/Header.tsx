@@ -1,5 +1,4 @@
 import CustomWalletConnectButton from "./CustomWalletConnectButton";
-import OpenOrdersAccountDropdown from "../OpenOrdersAccount";
 import Link from "next/link";
 
 const Header = () => {
@@ -27,7 +26,6 @@ const Header = () => {
         >
           Trade
         </Link>
-        <OpenOrdersAccountDropdown />
         <div>
           <CustomWalletConnectButton />
         </div>

@@ -11,11 +11,10 @@ import { AnchorProvider } from "@coral-xyz/anchor";
 import toast from "react-hot-toast";
 import { MARKETS, PROGRAM_ID } from "@/solana/config";
 import { Commitment, PublicKey } from "@solana/web3.js";
-import { ClientRequest } from "http";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { setAutoFreeze } from "immer";
-import { Spinner, useDisclosure } from "@nextui-org/react";
+import { Spinner, Tab, Tabs, useDisclosure } from "@nextui-org/react";
 import CreateOpenOrdersAccountModal from "@/components/trade/CreateOpenOrdersAccountModal";
+import OpenOrders from "@/components/OpenOrdersTable";
 
 const postSendTxCallback = ({ txid }: { txid: string }) => {
   console.group("Post tx sent callback");
@@ -35,12 +34,7 @@ const opts = {
 const TradePage = () => {
   const searchParams = useSearchParams();
   const marketPdaParam = searchParams.get("market")
-  const {
-    isOpen: isCreateOOModalOpen,
-    onOpen: openCreateOOModal,
-    onClose: closeCreateOOModal,
-    onOpenChange: onCreateOOModalOpenChange,
-  } = useDisclosure({ id: "create-oo-modal" });
+ 
   const set = useFermiStore(state => state.set)
   const router = useRouter()
   const pathname = usePathname()
@@ -48,6 +42,8 @@ const TradePage = () => {
   const { connection } = useConnection();
   const isClientLoading = useFermiStore(state => state.isClientLoading)
   const updateMarket = useFermiStore(state => state.actions.updateMarket)
+  const fetchOpenOrders = useFermiStore(state => state.actions.fetchOpenOrders)
+
 
   const initialise = async () => {
     if(marketPdaParam === null){
@@ -83,6 +79,7 @@ const TradePage = () => {
       console.log("Client initialized");    
 
       await updateMarket(marketPdaParam)
+      await fetchOpenOrders()
 
     } catch (err) {
       console.error("Failed to initialise : ", err);
@@ -93,7 +90,7 @@ const TradePage = () => {
 
   useEffect(() => {
      initialise();
-  }, []);
+  }, [connectedWallet,connection]);
 
   if (isClientLoading) {
     return (
@@ -111,15 +108,15 @@ const TradePage = () => {
         <div className="flex  gap-4 p-4">
           <div className="flex-[3] gap-4 flex flex-col">
             <div className="flex gap-4">
-              <div className="space-y-4">
+              <div className="space-y-4 flex-1">
                 <MarketSelector />
                 <PlaceOrder />
               </div>
-              <div className=" flex-[2] style-card p-4">
+              <div className=" flex-[3] style-card p-4">
                 <Chart />
               </div>
             </div>
-            {/* <div className="style-card ">
+            <div className="style-card flex-1">
               <Tabs
                 variant="underlined"
                 classNames={{ cursor: "bg-default-500", panel: "p-4 pt-0" }}
@@ -129,21 +126,19 @@ const TradePage = () => {
                   <OpenOrders />
                 </Tab>
                 <Tab title="BALANCES" key="balances">
-                  <TokenBalancesTable />
+                  {/* <TokenBalancesTable /> */}
+                  Token Balances Table
                 </Tab>
               </Tabs>
-            </div>*/}
+            </div>
           </div>
-          <div className="flex-[1] style-card">
+          <div className="flex-1 style-card ">
             <Orderbook />
+
           </div>
         </div>
       </div>
-      <CreateOpenOrdersAccountModal
-        isOpen={isCreateOOModalOpen}
-        onOpenChange={openCreateOOModal}
-        closeModal={closeCreateOOModal}
-      />
+    
     </Layout>
   );
 };

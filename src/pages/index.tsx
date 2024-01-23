@@ -1,7 +1,11 @@
 import Layout from "@/components/layout/Layout";
+import { MARKETS } from "@/solana/config";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter()
+  return router.push("/trade?market="+MARKETS[0].marketPda)
   return (
     <Layout>
       <section className="items-center justify-center flex ">

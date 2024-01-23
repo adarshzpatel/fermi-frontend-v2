@@ -49,6 +49,8 @@ type FermiStore = {
       connection?: Connection
     ) => void;
     fetchOpenOrders: () => Promise<void>;
+    cancelOrderById: (id: string) => Promise<void>;
+    finalise: () => Promise<void>;
   };
 };
 
@@ -80,8 +82,8 @@ const emptyWallet = new EmptyWallet(Keypair.generate());
 export const useFermiStore = create<FermiStore>()(
   subscribeWithSelector((_set, get) => {
     return {
-      isClientLoading: false,
-      isMarketLoading: false,
+      isClientLoading: true,
+      isMarketLoading: true,
       isOOLoading: true,
       connected: false,
       connection: new Connection(ENDPOINT),
@@ -105,12 +107,11 @@ export const useFermiStore = create<FermiStore>()(
       actions: {
         updateMarket: async (newMarketPda: string) => {
           const client = get().client;
-          const set = get().set
+          const set = get().set;
           try {
-            set(state => {
-              state.isMarketLoading = true
-            } )
-            console.group("Updating Market");
+            set((state) => {
+              state.isMarketLoading = true;
+            });
             if (!client) throw new Error("Client not initialized");
 
             const newMarket = await client.deserializeMarketAccount(
@@ -180,18 +181,18 @@ export const useFermiStore = create<FermiStore>()(
               state.selectedMarket.bids = bids;
               state.selectedMarket.asks = asks;
               state.selectedMarket.eventHeap = eventHeap;
-              state.isMarketLoading = false
+              state.isMarketLoading = false;
             });
             console.log("Market Updated Successfully");
           } catch (err: any) {
             console.log("Error in updateSelectedMarket:", err?.message);
             set((state) => {
-              state.selectedMarket.publicKey = undefined
-              state.selectedMarket.current = undefined
-              state.selectedMarket.bids = undefined
-              state.selectedMarket.asks = undefined
-              state.selectedMarket.eventHeap = undefined
-              state.isMarketLoading = false
+              state.selectedMarket.publicKey = undefined;
+              state.selectedMarket.current = undefined;
+              state.selectedMarket.bids = undefined;
+              state.selectedMarket.asks = undefined;
+              state.selectedMarket.eventHeap = undefined;
+              state.isMarketLoading = false;
             });
           } finally {
             console.groupEnd();
@@ -203,9 +204,9 @@ export const useFermiStore = create<FermiStore>()(
         ) => {
           const set = get().set;
           const conn = connection || get().connection;
-          set(state => {
-            state.isClientLoading = true
-          })
+          set((state) => {
+            state.isClientLoading = true;
+          });
 
           try {
             const provider = new AnchorProvider(
@@ -224,18 +225,15 @@ export const useFermiStore = create<FermiStore>()(
           } catch (e) {
             console.error("Error in connectClientWithWallet ", e);
           } finally {
-            set(state => {
-              state.isClientLoading = false
-            })
+            set((state) => {
+              state.isClientLoading = false;
+            });
           }
         },
         reloadMarket: async () => {
           const set = get().set;
           const client = get().client;
           const currentMarket = get().selectedMarket.current;
-          set(state => {
-            state.isMarketLoading = true
-          })
           try {
             if (!client) throw new Error("Client not initialized");
             if (!currentMarket) throw new Error("No market selected");
@@ -290,14 +288,8 @@ export const useFermiStore = create<FermiStore>()(
             console.log("Reloaded Market");
           } catch (err) {
             console.error("Error in reloadMarket:", err);
-            
-          } finally {
-            set(state => {
-              state.isMarketLoading = false
-            })
           }
         },
-
         updateConnection: (url: string) => {
           const set = get().set;
           set((state) => {
@@ -305,14 +297,71 @@ export const useFermiStore = create<FermiStore>()(
             state.connection = new Connection(url);
           });
         },
+        finalise: async (maker:PublicKey,makerAtaPublicKey:PublicKey,takerAtaPublicKey:PublicKey,slotsToConsume:BN) => {
+          const client = get().client
+          const market = get().selectedMarket.current
+          if(!client) throw new Error("Client not found")
+          if(!market) throw new Error("No market found!")
+          const marketPublicKey = get().selectedMarket.publicKey
+          if(!marketPublicKey) throw new Error("No market found!")
+          
 
+          // marketPublicKey: PublicKey,
+          // marketAuthority: PublicKey,
+          // eventHeapPublicKey: PublicKey,
+          // makerAtaPublicKey: PublicKey,
+          // takerAtaPublicKey: PublicKey,
+          // marketVaultBasePublicKey: PublicKey,
+          // marketVaultQuotePublicKey: PublicKey,
+          // maker: PublicKey,
+          // slotsToConsume: BN
+
+          const [ix, signers] = await client.createFinalizeEventsInstruction(
+            marketPublicKey,
+            market.marketAuthority,
+            market.eventHeap,
+            makerAtaPublicKey,
+            takerAtaPublicKey,
+            market.marketBaseVault,
+            market.marketQuoteVault,
+            maker,
+            slotsToConsume
+          );
+          
+          await client.sendAndConfirmTransaction([ix], {
+            additionalSigners: signers,
+          });
+          
+          
+        },
+        cancelOrderById: async (id: string) => {
+          console.group("Cancelling All orders");
+          const client = get().client;
+          const market = get().selectedMarket;
+          const openOrders = get().openOrders;
+          const orderId = new BN(id);
+          if (!client) throw new Error("Open orders account not found");
+          if (!openOrders.current || !openOrders.publicKey)
+            throw new Error("Open orders account not found");
+          if (!market.current) throw new Error("market not found");
+          const [ix, signers] = await client?.cancelOrderById(
+            openOrders.publicKey,
+            openOrders.current,
+            market.current,
+            orderId
+          );
+          await client.sendAndConfirmTransaction([ix]);
+          get().actions.fetchOpenOrders();
+          get().actions.reloadMarket();
+        },
         fetchOpenOrders: async () => {
+          console.log("fetching open orders");
           const client = get().client;
           const selectedMarketPk = get().selectedMarket.publicKey;
           const set = get().set;
-          set(state => {
-            state.isOOLoading = true
-          })
+          set((state) => {
+            state.isOOLoading = true;
+          });
           try {
             if (!client || !selectedMarketPk)
               throw new Error("Client or Market not initialized");
@@ -341,6 +390,7 @@ export const useFermiStore = create<FermiStore>()(
               }));
             }
 
+            console.log("Fetched open orders Successfully");
             set((state) => {
               state.openOrders.publicKey = openOrdersAccountPk;
               state.openOrders.current = openOrdersAccount;
@@ -348,18 +398,22 @@ export const useFermiStore = create<FermiStore>()(
             });
           } catch (err) {
             console.error("Error in fetchOpenOrders:", err);
-            set(state => {
-              state.openOrders.publicKey = undefined
-              state.openOrders.current = undefined
-              state.openOrders.orders = undefined
-            })
-          }finally{
-            set(state => {
-              state.isOOLoading = false
-            })
+            set((state) => {
+              state.openOrders.publicKey = undefined;
+              state.openOrders.current = undefined;
+              state.openOrders.orders = undefined;
+            });
+          } finally {
+            set((state) => {
+              state.isOOLoading = false;
+            });
           }
         },
       },
     };
   })
 );
+
+export const openOrdersSelector = (state: FermiStore) => state.openOrders;
+export const selectedMarketSelector = (state: FermiStore) =>
+  state.selectedMarket;

@@ -42,8 +42,6 @@ export const DEFAULT_TRADE_FORM: TradeForm = {
 
 
 function getUID(price,size) {
-  // Get the timestamp and convert 
-  // it into alphanumeric input
   return price + Date.now().toString(36) + size;
 
 }
@@ -67,13 +65,11 @@ const PlaceOrder = () => {
     (state) => state.actions.fetchOpenOrders
   );
   const selectedMarket = useFermiStore((state) => state.selectedMarket);
-  const clientOrderId = useId()
+
 
   const handlePlaceOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // setProcessing(true);
-    console.log(getUID(formData.price,formData.size))
-    return
+    setProcessing(true);
     try {
       if (!formData.price || !formData.size)
         throw new Error("Please enter price and size");
@@ -89,14 +85,9 @@ const PlaceOrder = () => {
       }
 
       const { side, price, size } = formData;
-      const clientOrderId = new BN(
-        generateUniqueClientOrderId(
-          client.walletPk.toString(),
-          marketPublicKey.toString()
-        )
-      );
-      console.log(clientOrderId.toString());
-      return
+
+      const clientOrderId = new BN(getUID(price,size))
+      console.log({price,size,side,clientOrderId})
       const orderArgs: PlaceOrderArgs = {
         side: side === SideType.Buy ? Side.Bid : Side.Ask,
         priceLots: new BN(price),
@@ -168,6 +159,7 @@ const PlaceOrder = () => {
         <h6 className="font-heading font-medium"></h6>
 
         <Tabs
+        size="lg"
           onSelectionChange={(key) =>
             setFormData((state) => ({
               ...state,
@@ -176,7 +168,7 @@ const PlaceOrder = () => {
           }
           color={formData.side === SideType.Buy ? "primary" : "danger"}
           radius="none"
-          className="mt-2 font-medium"
+          className=" font-medium"
           fullWidth
         >
           <Tab title="Buy" key="buy" />
@@ -188,6 +180,7 @@ const PlaceOrder = () => {
             placeholder="Select order type"
             selectedKeys={["limit"]}
             disabledKeys={["market"]}
+            size="lg"
             classNames={{
               trigger:
                 "bg-default-50  border-1 border-default-200 hover:border-default-400 active:border-default-400",
@@ -209,15 +202,18 @@ const PlaceOrder = () => {
             min={0}
             customInput={Input}
             label="Price"
+            name="price"
             required
             isDisabled={processing}
             radius="none"
             variant="faded"
             onValueChange={(values) => {
+
               const { value } = values;
               setFormData((state) => ({ ...state, price: value }));
             }}
             thousandSeparator=","
+            size="lg"
             allowNegative={false}
           />
           <NumericFormat
@@ -225,13 +221,16 @@ const PlaceOrder = () => {
             displayType="input"
             placeholder="0.00"
             min={0}
+            name="size"
             customInput={Input}
             label="Size"
             required
             isDisabled={processing}
             radius="none"
             variant="faded"
+            size="lg"
             onValueChange={(values) => {
+
               const { value } = values;
               setFormData((state) => ({ ...state, size: value }));
             }}
@@ -242,6 +241,7 @@ const PlaceOrder = () => {
             <Button
               type="submit"
               fullWidth
+              size="lg"
               radius="none"
               isLoading={processing}
               color={formData.side === SideType.Buy ? "primary" : "danger"}

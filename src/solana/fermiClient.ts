@@ -1125,7 +1125,6 @@ export class OpenBookV2Client {
     market: MarketAccount
   ): Promise<BN[]> {
     const slots: BN[] = new Array<BN>();
-
     const eventHeap = await this.deserializeEventHeapAccount(market.eventHeap);
     if (eventHeap != null) {
       for (const [i, node] of eventHeap.nodes.entries()) {

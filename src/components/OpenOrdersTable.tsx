@@ -1,79 +1,84 @@
+import { Button, useDisclosure } from "@nextui-org/react";
+import CreateOpenOrdersAccountModal from "./trade/CreateOpenOrdersAccountModal";
 import { useFermiStore } from "@/stores/fermiStore";
-import { Button, Chip } from "@nextui-org/react";
-
-import { useEffect } from "react";
+import OpenOrdersTableRow from "./OpenOrdersTableRow";
 
 
-const OpenOrders = () => {
-  const { openOrders,selectedMarket } = useFermiStore()
+const OpenOrdersTable = () => {
+  const {
+    isOpen: isCreateOOModalOpen,
+    onOpen: openCreateOOModal,
+    onClose: closeCreateOOModal,
+    onOpenChange: onCreateOOModalOpenChange,
+  } = useDisclosure({ id: "create-oo-modal" });
+  const isOpenOrdersLoading = useFermiStore((state) => state.isOOLoading);
+  const openOrders = useFermiStore((state) => state.openOrders);
 
-  useEffect(()=>{
-    if(selectedMarket.publicKey && openOrders.publicKey){
-      console.log({selectedMarket,openOrders})
+  if (isOpenOrdersLoading) {
+    return (
+      <div className="h-12 w-full bg-neutral-800 animate-pulse mt-2"></div>
+    );
+  }
+
+  if (!isOpenOrdersLoading && !openOrders.publicKey) {
+    return (
+      <div className="flex justify-between bg-red-500/20 items-center border-1 border-red-600/50  mt-2 p-3">
+        <p className="text-lg font-medium">
+          Please create an open orders acccount to start trading...
+        </p>
+        <Button
+          onClick={() => openCreateOOModal()}
+          radius="none"
+          variant="solid"
+          color="warning"
+          className="font-medium bg-red-100 text-red-800 "
+        >
+          Create Open Orders Account{" "}
+        </Button>
+      </div>
+    );
+  }
+
+  const cancelAllOrders = () => {
+    try {
+    } catch (err) {
+      console.error("Err", err);
+    } finally {
     }
-  },[selectedMarket,OpenOrders])
-  
-  return <></>
+  };
+
   return (
     <div>
-      <table className="w-full mt-2 table-auto border-1 border-default-100">
-        <thead className=" bg-default-100 text-sm text-default-500 h-10">
+      
+      <table className="w-full mt-2 table-auto border-1 border-default-200">
+        <thead className="bg-default-200/75 text-sm text-default-600 h-10">
           <tr>
             <th className="text-left pl-4 font-medium">Order Id</th>
+            <th className="text-center font-medium">Client Order Id</th>
             <th className="text-center font-medium">Price</th>
-            <th className="text-center font-medium">Quantity</th>
-            <th className="text-center font-medium">Side</th>
+            {/* <th className="text-center font-medium">Side</th> */}
             <th className="text-right pr-4  font-medium">Actions</th>
           </tr>
         </thead>
         <tbody className="text-sm ">
           {/* Coin */}
           {openOrders.orders?.map((order, i) => (
-            <tr
-              key={"oo-" + i + order.id}
-              className=" border-t-1 border-default-100"
-            >
-              <td className="text-left  p-3">{order.id}</td>
-              <td className="text-center p-3">{order.lockedPrice}</td>
-              <td className="text-center p-3">{order.qty}</td>
-              <td className="text-center p-3">
-                <Chip
-                  color={order.side === "Ask" ? "danger" : "success"}
-                  variant="flat"
-                >
-                  Buy
-                </Chip>
-              </td>
-              <td className="flex items-center p-3 justify-end gap-4">
-                  <Button
-                    // onClick={() => handleFinalise(order.orderId)}
-                    size="sm"
-                    radius="none"
-                    variant="ghost"
-                  >
-                    Finalise
-                  </Button>
-                )
-                <Button
-                  // onClick={() => handleCancelOrder(order.orderId, order.side)}
-                  size="sm"
-                  radius="none"
-                  variant="ghost"
-                >
-                  Cancel
-                </Button>
-              </td>
-            </tr>
+            <OpenOrdersTableRow {...order} key={"oo-"+order.id} />
           ))}
         </tbody>
       </table>
       {openOrders.orders?.length === 0 && (
-        <span className="p-4 justify-center flex w-full border border-t-0 border-default-100">
+        <span className="p-4 justify-center flex w-full border border-t-0 border-default-200">
           No open orders found
         </span>
       )}
+      <CreateOpenOrdersAccountModal
+        isOpen={isCreateOOModalOpen}
+        onOpenChange={openCreateOOModal}
+        closeModal={closeCreateOOModal}
+      />
     </div>
   );
 };
 
-export default OpenOrders;
+export default OpenOrdersTable;
