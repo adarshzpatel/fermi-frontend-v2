@@ -12,20 +12,18 @@ import {
 } from "@nextui-org/react";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { fetchServerResponse } from "next/dist/client/components/router-reducer/fetch-server-response";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 
 type Props = {
   isOpen: boolean;
   closeModal: () => void;
-  onOpenChange: (isOpen: boolean) => void;
+
 };
 
 const CreateOpenOrdersAccountModal = ({
   isOpen,
   closeModal,
-  onOpenChange,
 }: Props) => {
   const [accountName, setAccountName] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -35,8 +33,8 @@ const CreateOpenOrdersAccountModal = ({
   const client = useFermiStore((state) => state.client);
   const fetchOpenOrders = useFermiStore(state => state.actions.fetchOpenOrders)
 
-
   const createOpenOrdersAccount = async () => {
+
 
     try {
       setProcessing(true);
@@ -103,7 +101,6 @@ const CreateOpenOrdersAccountModal = ({
       onClose={closeModal}
       backdrop="blur"
       radius="none"
-      onOpenChange={onOpenChange}
     >
       <ModalContent>
         <ModalHeader className="p-6 font-heading">

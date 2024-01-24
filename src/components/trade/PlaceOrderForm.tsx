@@ -137,8 +137,8 @@ const PlaceOrder = () => {
       });
 
       toast.success("Order placed successfully");
-      reloadMarket();
-      fetchOpenOrders();
+      await reloadMarket();
+      await fetchOpenOrders();
     } catch (err: any) {
       const message = err?.message || "Failed to place order";
       toast.error(message);
@@ -250,7 +250,7 @@ const PlaceOrder = () => {
       </div>
       <CreateOpenOrdersAccountModal
         isOpen={isCreateOOModalOpen}
-        onOpenChange={openCreateOOModal}
+
         closeModal={closeCreateOOModal}
       />
     </>

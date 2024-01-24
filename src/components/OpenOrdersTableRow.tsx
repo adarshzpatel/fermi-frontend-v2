@@ -2,7 +2,7 @@ import { useFermiStore } from "@/stores/fermiStore";
 import { BN } from "@coral-xyz/anchor";
 import { Button } from "@nextui-org/react";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type OpenOrdersTableRowProps = {
   id: string;
@@ -15,7 +15,7 @@ const OpenOrdersTableRow = ({
   clientId,
   lockedPrice,
   finaliseEvent,
-}) => {
+}:OpenOrdersTableRowProps) => {
   const cancelOrderById = useFermiStore(
     (state) => state.actions.cancelOrderById
   );
@@ -23,6 +23,10 @@ const OpenOrdersTableRow = ({
   const connectedWallet = useAnchorWallet()
   const [isCancelling, setIsCancelling] = useState(false);
   const [isFinalising, setIsFinalising] = useState(false);
+  
+  useEffect(()=>{
+    console.log(finaliseEvent)
+  },[])
 
   const handleFinalise = async () => {
     try{
@@ -30,7 +34,7 @@ const OpenOrdersTableRow = ({
       setIsFinalising(true)
       console.log(JSON.stringify(finaliseEvent))
       console.log("Trying to finalise", id); 
-      await finalise(finaliseEvent.maker,finaliseEvent.taker,new BN(finaliseEvent.makerSlot))
+      await finalise(finaliseEvent.maker,finaliseEvent.taker,new BN(finaliseEvent.index))
     } catch(err){
       console.log(err)
     } finally{

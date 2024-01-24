@@ -16,7 +16,7 @@ export type Market = {
 export const MARKETS: Market[] = [
   {
     name:'TONK/USDC',
-    marketPda: "ikFtY4ZDuitei7tsjQf1B8m47XEe2F4XjVgBLieifQv",
+    marketPda: "9xY7XnXRPXYYNCExt6EbVpNwptskiLeoLDMNhMfQdiD7",
     quoteTokenName: "USDC",
     baseTokenName: "BONK",
   },

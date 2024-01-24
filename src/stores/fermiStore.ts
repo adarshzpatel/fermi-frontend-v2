@@ -21,12 +21,11 @@ import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { checkOrCreateAssociatedTokenAccount } from "@/solana/utils/helpers";
 
 type FermiStore = {
-  isClientLoading: boolean;
   isMarketLoading: boolean;
   isOOLoading: boolean;
   connected: boolean;
   connection: Connection;
-  client: OpenBookV2Client | undefined;
+  client: OpenBookV2Client;
   set: (x: (x: FermiStore) => void) => void;
   openOrders: {
     publicKey: PublicKey | undefined;
@@ -51,7 +50,11 @@ type FermiStore = {
     ) => void;
     fetchOpenOrders: () => Promise<void>;
     cancelOrderById: (id: string) => Promise<void>;
-    finalise: (maker:PublicKey,taker:PublicKey,slotsToConsume:BN) => Promise<void>;
+    finalise: (
+      maker: PublicKey,
+      taker: PublicKey,
+      slotsToConsume: BN
+    ) => Promise<void>;
   };
 };
 
@@ -82,13 +85,17 @@ const emptyWallet = new EmptyWallet(Keypair.generate());
 
 export const useFermiStore = create<FermiStore>()(
   subscribeWithSelector((_set, get) => {
+    const connection = new Connection(ENDPOINT);
+    const provider = new AnchorProvider(connection, emptyWallet, {
+      commitment: "confirmed",
+    });
+    const client = initFermiClient(provider);
     return {
-      isClientLoading: true,
-      isMarketLoading: true,
+      isMarketLoading: false,
       isOOLoading: true,
       connected: false,
       connection: new Connection(ENDPOINT),
-      client: undefined,
+      client: client,
       markets: MARKETS,
       selectedMarket: {
         publicKey: undefined,
@@ -107,6 +114,7 @@ export const useFermiStore = create<FermiStore>()(
       set: (fn) => _set(produce(fn)),
       actions: {
         updateMarket: async (newMarketPda: string) => {
+          console.log("updating market to", newMarketPda);
           const client = get().client;
           const set = get().set;
           try {
@@ -130,12 +138,14 @@ export const useFermiStore = create<FermiStore>()(
             );
 
             const asks = asksAccount && client.getLeafNodes(asksAccount);
-  
+            console.log("asks", asks);
+            console.log("bids", bids);
 
             const eventHeapAccount = await client.deserializeEventHeapAccount(
               new PublicKey(newMarket.eventHeap)
             );
-            const eventHeap = eventHeapAccount && parseEventHeap(client,eventHeapAccount);
+            const eventHeap =
+              eventHeapAccount && parseEventHeap(client, eventHeapAccount);
 
             set((state) => {
               state.selectedMarket.publicKey = new PublicKey(newMarketPda);
@@ -143,8 +153,8 @@ export const useFermiStore = create<FermiStore>()(
               state.selectedMarket.bids = bids;
               state.selectedMarket.asks = asks;
               state.selectedMarket.eventHeap = eventHeap;
-              state.isMarketLoading = false;
             });
+
             console.log("Market Updated Successfully");
           } catch (err: any) {
             console.log("Error in updateSelectedMarket:", err?.message);
@@ -154,10 +164,12 @@ export const useFermiStore = create<FermiStore>()(
               state.selectedMarket.bids = undefined;
               state.selectedMarket.asks = undefined;
               state.selectedMarket.eventHeap = undefined;
-              state.isMarketLoading = false;
             });
           } finally {
             console.groupEnd();
+            set((state) => {
+              state.isMarketLoading = false;
+            });
           }
         },
         connectClientWithWallet: (
@@ -166,16 +178,12 @@ export const useFermiStore = create<FermiStore>()(
         ) => {
           const set = get().set;
           const conn = connection || get().connection;
-          set((state) => {
-            state.isClientLoading = true;
-          });
 
           try {
-            const provider = new AnchorProvider(
-              conn,
-              wallet,
-              AnchorProvider.defaultOptions()
-            );
+            const provider = new AnchorProvider(conn, wallet, {
+              commitment: "confirmed",
+              maxRetries:3
+            });
 
             const client = initFermiClient(provider);
 
@@ -184,12 +192,10 @@ export const useFermiStore = create<FermiStore>()(
               s.connection = conn;
               s.client = client;
             });
+
+            console.log("Connected wallet to client successfully");
           } catch (e) {
             console.error("Error in connectClientWithWallet ", e);
-          } finally {
-            set((state) => {
-              state.isClientLoading = false;
-            });
           }
         },
         reloadMarket: async () => {
@@ -214,7 +220,8 @@ export const useFermiStore = create<FermiStore>()(
             const eventHeapAccount = await client.deserializeEventHeapAccount(
               new PublicKey(currentMarket.eventHeap)
             );
-            const eventHeap = eventHeapAccount && parseEventHeap(client,eventHeapAccount);
+            const eventHeap =
+              eventHeapAccount && parseEventHeap(client, eventHeapAccount);
 
             set((state) => {
               state.selectedMarket.current = currentMarket;
@@ -234,21 +241,33 @@ export const useFermiStore = create<FermiStore>()(
             state.connection = new Connection(url);
           });
         },
-        finalise: async (maker,taker,slotsToConsume:BN) => {
-          const client = get().client
-          const market = get().selectedMarket.current
-          if(!client) throw new Error("Client not found")
-          if(!market) throw new Error("No market found!")
-          const marketPublicKey = get().selectedMarket.publicKey
-          if(!marketPublicKey) throw new Error("No market found!")
+        finalise: async (maker, taker, slotsToConsume: BN) => {
+          const client = get().client;
+          const market = get().selectedMarket.current;
+          if (!client) throw new Error("Client not found");
+          if (!market) throw new Error("No market found!");
+          const marketPublicKey = get().selectedMarket.publicKey;
+          if (!marketPublicKey) throw new Error("No market found!");
 
-          const ooMaker = await client.deserializeOpenOrderAccount(maker)
-          const ooTaker = await client.deserializeOpenOrderAccount(taker)
-          console.log(ooMaker?.owner.toString())
-          console.log(ooTaker?.owner.toString())
-          if(!ooMaker || !ooTaker) throw new Error("Open orders not found")
-          const makerAtaPublicKey = new PublicKey(await checkOrCreateAssociatedTokenAccount(client.provider, market.quoteMint, ooMaker?.owner));
-          const takerAtaPublicKey = new PublicKey(await checkOrCreateAssociatedTokenAccount(client.provider, market.quoteMint, ooTaker?.owner));
+          const ooMaker = await client.deserializeOpenOrderAccount(maker);
+          const ooTaker = await client.deserializeOpenOrderAccount(taker);
+          console.log(ooMaker?.owner.toString());
+          console.log(ooTaker?.owner.toString());
+          if (!ooMaker || !ooTaker) throw new Error("Open orders not found");
+          const makerAtaPublicKey = new PublicKey(
+            await checkOrCreateAssociatedTokenAccount(
+              client.provider,
+              market.quoteMint,
+              ooMaker?.owner
+            )
+          );
+          const takerAtaPublicKey = new PublicKey(
+            await checkOrCreateAssociatedTokenAccount(
+              client.provider,
+              market.quoteMint,
+              ooTaker?.owner
+            )
+          );
 
           const [ix, signers] = await client.createFinalizeEventsInstruction(
             marketPublicKey,
@@ -262,9 +281,9 @@ export const useFermiStore = create<FermiStore>()(
             slotsToConsume
           );
 
-          await client.sendAndConfirmTransaction([ix],{additionalSigners:signers});
-
-
+          await client.sendAndConfirmTransaction([ix], {
+            additionalSigners: signers,
+          });
         },
         cancelOrderById: async (id: string) => {
           console.group("Cancelling All orders");
@@ -357,10 +376,11 @@ export const parseEventHeap = (
 ) => {
   if (eventHeap == null) throw new Error("Event Heap not found");
   let fillEvents: any = [];
-  // let outEvents: any = [];
-
+  let outEvents: any = [];
+  // let nodes: any = [];
   if (eventHeap !== null) {
-    for (const node of eventHeap.nodes as any) {
+    (eventHeap.nodes as any).forEach((node, i) => {
+      // nodes.push(node.event);
       if (node.event.eventType === 0) {
         const fillEvent: FillEvent = client.program.coder.types.decode(
           "FillEvent",
@@ -370,25 +390,25 @@ export const parseEventHeap = (
         if (fillEvent.timestamp.toString() !== "0") {
           fillEvents.push({
             ...fillEvent,
-            // maker: fillEvent.maker.toString(),
-            // taker: fillEvent.taker.toString(),
-            // price: fillEvent.price.toString(),
-            // quantity: fillEvent.quantity.toString(),
-            // makerClientOrderId: fillEvent.makerClientOrderId.toString(),
-            // takerClientOrderId: fillEvent.takerClientOrderId.toString(),
+            index: i,
+            maker: fillEvent.maker.toString(),
+            taker: fillEvent.taker.toString(),
+            price: fillEvent.price.toString(),
+            quantity: fillEvent.quantity.toString(),
+            makerClientOrderId: fillEvent.makerClientOrderId.toString(),
+            takerClientOrderId: fillEvent.takerClientOrderId.toString(),
           });
         }
+      } else {
+        const outEvent: OutEvent = client.program.coder.types.decode(
+          "OutEvent",
+          Buffer.from([0, ...node.event.padding])
+        );
+        if (outEvent.timestamp.toString() !== "0")
+          outEvents.push({ ...outEvent, index: i });
       }
-      // else {
-      // NOT RELEVANT FOR NOW
-      // const outEvent: OutEvent = client.program.coder.types.decode(
-      //   "OutEvent",
-      //   Buffer.from([0, ...node.event.padding])
-      // );
-      // if (outEvent.timestamp.toString() !== "0") outEvents.push(outEvent);
-      // }
-    }
+    });
   }
-
-  return  fillEvents ;
+  console.log({ fillEvents, outEvents });
+  return fillEvents;
 };

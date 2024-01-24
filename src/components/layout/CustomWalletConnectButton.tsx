@@ -30,6 +30,11 @@ const CustomWalletConnectButton = () => {
   
   const connectClientWithWallet = useFermiStore(state => state.actions.connectClientWithWallet)
   
+  useEffect(()=>{
+    if(connectedWallet){
+      connectClientWithWallet(connectedWallet)
+    }
+  },[connectedWallet])
 
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {

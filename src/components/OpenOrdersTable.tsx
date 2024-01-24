@@ -3,35 +3,40 @@ import CreateOpenOrdersAccountModal from "./trade/CreateOpenOrdersAccountModal";
 import { useFermiStore } from "@/stores/fermiStore";
 import OpenOrdersTableRow from "./OpenOrdersTableRow";
 import { useEffect, useMemo } from "react";
-import { eventNames } from "process";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
 
 const OpenOrdersTable = () => {
   const {
     isOpen: isCreateOOModalOpen,
     onOpen: openCreateOOModal,
     onClose: closeCreateOOModal,
-    onOpenChange: onCreateOOModalOpenChange,
+    onOpenChange
   } = useDisclosure({ id: "create-oo-modal" });
   const isOpenOrdersLoading = useFermiStore((state) => state.isOOLoading);
   const openOrders = useFermiStore((state) => state.openOrders);
   const eventHeap = useFermiStore((state) => state.selectedMarket.eventHeap);
-  
-  const canFinalise = useMemo(() => {
-    let map:{[x:string]:any} = {}
-    openOrders?.orders?.forEach((order) => {
-      const match = eventHeap.find(
-        (event) => event.makerClientOrderId.toString() === order.clientId
-      )
-      map[order.clientId] = match
-    });
-    return map;
-  }, [openOrders, eventHeap]);
-  
-  useEffect(() => {
-    console.log(canFinalise)
-  }, [canFinalise]);
+  const [client,selectedMarket,fetchOpenOrders] = useFermiStore(state => [state.client,state.selectedMarket,state.actions.fetchOpenOrders])
 
+  useEffect(()=>{
+      fetchOpenOrders()
+  },[client,selectedMarket.publicKey])
+
+  const canFinalise = useMemo(() => {
+    let map: { [x: string]: any } = {};
+    if (eventHeap != undefined && openOrders != undefined) {
+      openOrders?.orders?.forEach((order) => {
+        const match = eventHeap?.find(
+          (event) => event.makerClientOrderId.toString() === order.clientId
+        );
+        if(match) map[order.id] = match;
+      });
+    }
+    return map;
+  }, [openOrders,eventHeap]);
+
+
+  useEffect(()=>{
+    console.log("canFinalise",canFinalise)
+  },[canFinalise])
   if (isOpenOrdersLoading) {
     return (
       <div className="h-12 w-full bg-neutral-800 animate-pulse mt-2"></div>
@@ -45,7 +50,11 @@ const OpenOrdersTable = () => {
           Please create an open orders acccount to start trading...
         </p>
         <Button
-          onClick={() => openCreateOOModal()}
+          onClick={() => {
+            console.log("Opening create oo modal")
+            console.log({isCreateOOModalOpen})
+            openCreateOOModal()
+          }}
           radius="none"
           variant="solid"
           color="warning"
@@ -53,6 +62,10 @@ const OpenOrdersTable = () => {
         >
           Create Open Orders Account{" "}
         </Button>
+        <CreateOpenOrdersAccountModal
+        isOpen={isCreateOOModalOpen}
+        closeModal={closeCreateOOModal}
+      />
       </div>
     );
   }
@@ -72,7 +85,11 @@ const OpenOrdersTable = () => {
         <tbody className="text-sm ">
           {/* Coin */}
           {openOrders.orders?.map((order, i) => (
-            <OpenOrdersTableRow {...order} finaliseEvent={canFinalise[order.clientId]} key={"oo-" + order.id} />
+            <OpenOrdersTableRow
+              {...order}
+              finaliseEvent={canFinalise[order.id]}
+              key={"oo-" + order.id}
+            />
           ))}
         </tbody>
       </table>
@@ -81,12 +98,8 @@ const OpenOrdersTable = () => {
           No open orders found
         </span>
       )}
-      <CreateOpenOrdersAccountModal
-        isOpen={isCreateOOModalOpen}
-        onOpenChange={openCreateOOModal}
-        closeModal={closeCreateOOModal}
-      />
     </div>
+    
   );
 };
 
