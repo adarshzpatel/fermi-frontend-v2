@@ -182,7 +182,7 @@ export const useFermiStore = create<FermiStore>()(
           try {
             const provider = new AnchorProvider(conn, wallet, {
               commitment: "confirmed",
-              maxRetries:3
+              maxRetries: 3,
             });
 
             const client = initFermiClient(provider);
@@ -268,22 +268,35 @@ export const useFermiStore = create<FermiStore>()(
               ooTaker?.owner
             )
           );
+          const accounts = {
+            market: marketPublicKey,
+            marketAuthority: market.marketAuthority,
+            eventHeap: market.eventHeap,
+            makerAta: makerAtaPublicKey,
+            takerAta: takerAtaPublicKey,
+            marketVaultBase: market.marketBaseVault,
+            marketVaultQuote: market.marketQuoteVault,
+            maker: maker,
+          };
 
-          const [ix, signers] = await client.createFinalizeEventsInstruction(
-            marketPublicKey,
-            market.marketAuthority,
-            market.eventHeap,
-            makerAtaPublicKey,
-            takerAtaPublicKey,
-            market.marketBaseVault,
-            market.marketQuoteVault,
-            maker,
-            slotsToConsume
-          );
+          const ix =  await client.program.methods.atomicFinalizeEvents(new BN(0)).accounts(accounts).signers([]).rpc()
+          console.log(ix)
 
-          await client.sendAndConfirmTransaction([ix], {
-            additionalSigners: signers,
-          });
+          // const [ix, signers] = await client.createFinalizeEventsInstruction(
+          //   marketPublicKey,
+          //   market.marketAuthority,
+          //   market.eventHeap,
+          //   makerAtaPublicKey,
+          //   takerAtaPublicKey,
+          //   market.marketBaseVault,
+          //   market.marketQuoteVault,
+          //   maker,
+          //   slotsToConsume
+          // );
+
+          // await client.sendAndConfirmTransaction([ix], {
+          //   additionalSigners: signers,
+          // });
         },
         cancelOrderById: async (id: string) => {
           console.group("Cancelling All orders");
